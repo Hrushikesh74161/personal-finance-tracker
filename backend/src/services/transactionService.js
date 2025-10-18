@@ -5,7 +5,7 @@ import { transactionModel } from "../models/transactionModel.js";
  * @param {Object} transactionData - Transaction data
  * @param {string} transactionData.userId - User ID
  * @param {string} transactionData.type - Transaction type
- * @param {string} transactionData.category - Transaction category
+ * @param {string} transactionData.categoryId - Transaction category ID
  * @param {number} transactionData.amount - Transaction amount
  * @param {string} transactionData.description - Transaction description
  * @param {Date} transactionData.date - Transaction date
@@ -17,7 +17,7 @@ export async function createTransaction(transactionData) {
   const {
     userId,
     type,
-    category,
+    categoryId,
     amount,
     description,
     date,
@@ -29,7 +29,7 @@ export async function createTransaction(transactionData) {
   const newTransaction = new transactionModel({
     userId,
     type,
-    category,
+    categoryId,
     amount,
     description,
     date: date || new Date(),
@@ -46,6 +46,10 @@ export async function createTransaction(transactionData) {
     {
       path: "accountId",
       select: "name type balance",
+    },
+    {
+      path: "categoryId",
+      select: "name description color icon",
     },
   ]);
 
@@ -70,6 +74,10 @@ export async function getTransactionById(transactionId, userId) {
         path: "accountId",
         select: "name type balance",
       },
+      {
+        path: "categoryId",
+        select: "name description color icon",
+      },
     ])
     .lean();
 
@@ -85,7 +93,7 @@ export async function getTransactionById(transactionId, userId) {
  * @param {string} userId - User ID
  * @param {Object} filters - Filter options
  * @param {string} filters.type - Transaction type filter
- * @param {string} filters.category - Category filter
+ * @param {string} filters.categoryId - Category ID filter
  * @param {string} filters.accountId - Account ID filter
  * @param {Date} filters.startDate - Start date filter
  * @param {Date} filters.endDate - End date filter
@@ -100,7 +108,7 @@ export async function getTransactionById(transactionId, userId) {
 export async function getTransactions(userId, filters = {}) {
   const {
     type,
-    category,
+    categoryId,
     accountId,
     startDate,
     endDate,
@@ -119,8 +127,8 @@ export async function getTransactions(userId, filters = {}) {
     query.type = type;
   }
 
-  if (category) {
-    query.category = { $regex: category, $options: "i" };
+  if (categoryId) {
+    query.categoryId = categoryId;
   }
 
   if (accountId) {
@@ -167,6 +175,10 @@ export async function getTransactions(userId, filters = {}) {
           path: "accountId",
           select: "name type balance",
         },
+        {
+          path: "categoryId",
+          select: "name description color icon",
+        },
       ])
       .sort(sort)
       .skip(skip)
@@ -208,7 +220,6 @@ export async function updateTransaction(transactionId, userId, updateData) {
   }
 
   // Update transaction fields
-  console.log({ updateData });
   const updatedTransaction = await transactionModel.findByIdAndUpdate(transactionId, updateData, { new: true }).populate([
     {
       path: "userId",
@@ -217,6 +228,10 @@ export async function updateTransaction(transactionId, userId, updateData) {
     {
       path: "accountId",
       select: "name type balance",
+    },
+    {
+      path: "categoryId",
+      select: "name description color icon",
     },
   ]).lean();
 

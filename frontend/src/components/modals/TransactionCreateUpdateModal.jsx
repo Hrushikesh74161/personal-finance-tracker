@@ -6,6 +6,7 @@ import { useDispatch } from "react-redux";
 import * as Yup from "yup";
 import { useCreateTransactionMutation } from "../../api/useCreateTransactionMutation";
 import { useGetAccountsQuery } from "../../api/useGetAccountsQuery";
+import { useGetCategoriesQuery } from "../../api/useGetCategoriesQuery";
 import { useUpdateTransactionMutation } from "../../api/useUpdateTransactionMutation";
 import { showToast } from "../../redux/slices/toastSlice";
 import Button from "../common/Button";
@@ -22,22 +23,7 @@ const TRANSACTION_TYPES = [
   { value: 'transfer', label: 'Transfer' },
 ];
 
-/**
- * Transaction categories configuration
- */
-const TRANSACTION_CATEGORIES = [
-  { value: 'Food & Dining', label: 'Food & Dining' },
-  { value: 'Transportation', label: 'Transportation' },
-  { value: 'Entertainment', label: 'Entertainment' },
-  { value: 'Shopping', label: 'Shopping' },
-  { value: 'Bills & Utilities', label: 'Bills & Utilities' },
-  { value: 'Healthcare', label: 'Healthcare' },
-  { value: 'Education', label: 'Education' },
-  { value: 'Travel', label: 'Travel' },
-  { value: 'Income', label: 'Income' },
-  { value: 'Transfer', label: 'Transfer' },
-  { value: 'Other', label: 'Other' },
-];
+// Categories will be fetched from the API
 
 /**
  * Validation schema for transaction form
@@ -47,10 +33,8 @@ const validationSchema = Yup.object().shape({
     .required("Transaction type is required")
     .oneOf(['income', 'expense', 'transfer'], "Please select a valid transaction type"),
 
-  category: Yup.string()
-    .required("Category is required")
-    .min(1, "Category must be at least 1 character")
-    .max(100, "Category must not exceed 100 characters"),
+  categoryId: Yup.string()
+    .required("Category is required"),
 
   amount: Yup.number()
     .typeError("Amount must be a valid number")
@@ -96,14 +80,22 @@ export default function TransactionCreateUpdateModal({
   const dispatch = useDispatch();
   const user = JSON.parse(sessionStorage.getItem("loginInfo"))?.user;
 
-  // Fetch accounts for dropdown
+  // Fetch accounts and categories for dropdowns
   const { data: accountsData } = useGetAccountsQuery();
+  const { data: categoriesData } = useGetCategoriesQuery();
   const accounts = accountsData?.accounts || [];
+  const categories = categoriesData?.categories || [];
 
   // Create account options for dropdown
   const accountOptions = accounts.map(account => ({
     value: account._id,
     label: `${account.name} (${account.type})`
+  }));
+
+  // Create category options for dropdown
+  const categoryOptions = categories.map(category => ({
+    value: category._id,
+    label: category.name
   }));
 
   // Create account options excluding the selected account for transfer destination
@@ -145,7 +137,7 @@ export default function TransactionCreateUpdateModal({
   // Initial form values
   const initialValues = {
     type: transaction?.type || '',
-    category: transaction?.category || '',
+    categoryId: transaction?.categoryId || '',
     amount: transaction?.amount || '',
     description: transaction?.description || '',
     date: transaction?.date ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
@@ -203,7 +195,6 @@ export default function TransactionCreateUpdateModal({
           type="submit"
           form="transaction-form"
           disabled={isLoading}
-          onClick={handleSubmit}
           sx={{ minWidth: 120 }}
         >
           {isLoading
@@ -240,14 +231,13 @@ export default function TransactionCreateUpdateModal({
               <Select
                 required
                 label="Category"
-                name="category"
-                value={values.category}
-                onChange={(e) => setFieldValue('category', e.target.value)}
-                error={Boolean(touched.category && errors.category)}
-                errorText={touched.category && errors.category}
-                helperText="Select or enter a category for this transaction"
-                options={TRANSACTION_CATEGORIES}
-                allowCustom
+                name="categoryId"
+                value={values.categoryId}
+                onChange={(e) => setFieldValue('categoryId', e.target.value)}
+                error={Boolean(touched.categoryId && errors.categoryId)}
+                errorText={touched.categoryId && errors.categoryId}
+                helperText="Select a category for this transaction"
+                options={categoryOptions}
               />
 
               {/* Amount */}

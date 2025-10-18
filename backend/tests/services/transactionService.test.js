@@ -31,14 +31,12 @@ describe('TransactionService', () => {
     const mockTransactionData = {
       userId: 'user123',
       type: 'expense',
-      category: 'Food',
+      categoryId: 'category123',
       amount: 25.50,
       description: 'Lunch at restaurant',
       date: new Date('2023-01-15'),
       tags: ['food', 'lunch'],
-      relatedTransactionId: null,
-      paymentMethod: 'credit_card',
-      location: 'Restaurant ABC'
+      accountId: 'account123'
     };
 
     const mockSavedTransaction = {
@@ -68,14 +66,12 @@ describe('TransactionService', () => {
       expect(TransactionConstructor).toHaveBeenCalledWith({
         userId: 'user123',
         type: 'expense',
-        category: 'Food',
+        categoryId: 'category123',
         amount: 25.50,
         description: 'Lunch at restaurant',
         date: mockTransactionData.date,
         tags: ['food', 'lunch'],
-        relatedTransactionId: null,
-        paymentMethod: 'credit_card',
-        location: 'Restaurant ABC'
+        accountId: 'account123'
       });
       expect(mockNewTransaction.save).toHaveBeenCalled();
       expect(mockSavedTransaction.populate).toHaveBeenCalledWith({
@@ -90,9 +86,10 @@ describe('TransactionService', () => {
       const minimalTransactionData = {
         userId: 'user123',
         type: 'income',
-        category: 'Salary',
+        categoryId: 'category456',
         amount: 5000,
-        description: 'Monthly salary'
+        description: 'Monthly salary',
+        accountId: 'account456'
       };
 
       const mockNewTransaction = {
@@ -112,14 +109,12 @@ describe('TransactionService', () => {
       expect(TransactionConstructor).toHaveBeenCalledWith({
         userId: 'user123',
         type: 'income',
-        category: 'Salary',
+        categoryId: 'category456',
         amount: 5000,
         description: 'Monthly salary',
         date: expect.any(Date),
         tags: [],
-        relatedTransactionId: undefined,
-        paymentMethod: undefined,
-        location: undefined
+        accountId: 'account456'
       });
     });
 
@@ -143,13 +138,12 @@ describe('TransactionService', () => {
       _id: 'transaction123',
       userId: 'user123',
       type: 'expense',
-      category: 'Food',
+      categoryId: 'category123',
       amount: 25.50,
       description: 'Lunch',
       date: new Date('2023-01-15'),
       tags: ['food'],
-      paymentMethod: 'credit_card',
-      location: 'Restaurant'
+      accountId: 'account123'
     };
 
     test('should successfully get transaction by ID', async () => {
@@ -199,19 +193,21 @@ describe('TransactionService', () => {
         _id: 'transaction1',
         userId: 'user123',
         type: 'expense',
-        category: 'Food',
+        categoryId: 'category123',
         amount: 25.50,
         description: 'Lunch',
-        date: new Date('2023-01-15')
+        date: new Date('2023-01-15'),
+        accountId: 'account123'
       },
       {
         _id: 'transaction2',
         userId: 'user123',
         type: 'income',
-        category: 'Salary',
+        categoryId: 'category456',
         amount: 5000,
         description: 'Monthly salary',
-        date: new Date('2023-01-01')
+        date: new Date('2023-01-01'),
+        accountId: 'account456'
       }
     ];
 
@@ -257,7 +253,7 @@ describe('TransactionService', () => {
       // Arrange
       const filters = {
         type: 'expense',
-        category: 'Food',
+        categoryId: 'category123',
         startDate: new Date('2023-01-01'),
         endDate: new Date('2023-01-31'),
         minAmount: 10,
@@ -293,7 +289,7 @@ describe('TransactionService', () => {
         userId: 'user123',
         deleted: false,
         type: 'expense',
-        category: { $regex: 'Food', $options: 'i' },
+        categoryId: 'category123',
         date: {
           $gte: new Date('2023-01-01'),
           $lte: new Date('2023-01-31')
@@ -356,10 +352,11 @@ describe('TransactionService', () => {
       _id: 'transaction123',
       userId: 'user123',
       type: 'expense',
-      category: 'Food',
+      categoryId: 'category123',
       amount: 30.00,
       description: 'Updated lunch',
-      date: new Date('2023-01-15')
+      date: new Date('2023-01-15'),
+      accountId: 'account123'
     };
 
     test('should successfully update transaction', async () => {

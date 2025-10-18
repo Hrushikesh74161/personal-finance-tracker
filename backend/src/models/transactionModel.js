@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { accountModelName, transactionModelName } from "../constants/modelNames.js";
+import { accountModelName, categoryModelName, transactionModelName } from "../constants/modelNames.js";
 import transactionTypes from "../constants/transactionTypes.js";
 
 const transactionSchema = new mongoose.Schema(
@@ -14,10 +14,10 @@ const transactionSchema = new mongoose.Schema(
       required: true,
       enum: Object.values(transactionTypes),
     },
-    category: {
-      type: String,
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: categoryModelName,
       required: true,
-      trim: true,
     },
     amount: {
       type: Number,
@@ -62,7 +62,7 @@ const transactionSchema = new mongoose.Schema(
 /** indexes */
 transactionSchema.index({ userId: 1, date: -1 });
 transactionSchema.index({ userId: 1, type: 1 });
-transactionSchema.index({ userId: 1, category: 1 });
+transactionSchema.index({ userId: 1, categoryId: 1 });
 transactionSchema.index({ userId: 1, amount: 1 });
 transactionSchema.index({ userId: 1, deleted: 1 });
 

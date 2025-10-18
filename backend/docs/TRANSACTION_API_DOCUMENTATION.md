@@ -27,7 +27,7 @@ Authorization: Bearer <your-jwt-token>
   _id: ObjectId,
   userId: ObjectId, // Reference to User
   type: String, // "expense" | "income" | "transfer" | "adjustment"
-  category: String, // Transaction category
+  categoryId: ObjectId, // Reference to Category
   amount: Number, // Transaction amount (>= 0)
   description: String, // Transaction description
   date: Date, // Transaction date
@@ -54,7 +54,7 @@ Authorization: Bearer <your-jwt-token>
 ```json
 {
   "type": "expense",
-  "category": "Food & Dining",
+  "categoryId": "65a1b2c3d4e5f6789012348",
   "amount": 25.50,
   "description": "Lunch at restaurant",
   "date": "2024-01-15T12:30:00.000Z",
@@ -65,7 +65,7 @@ Authorization: Bearer <your-jwt-token>
 
 **Validation Rules:**
 - `type`: Required, must be one of: "expense", "income", "transfer", "adjustment"
-- `category`: Required, 1-100 characters
+- `categoryId`: Required, must be valid MongoDB ObjectId referencing an existing category
 - `amount`: Required, must be a number >= 0
 - `description`: Required, 1-500 characters
 - `date`: Optional, must be valid ISO 8601 date format
@@ -114,7 +114,7 @@ Authorization: Bearer <your-jwt-token>
 - `page` (optional): Page number (default: 1, min: 1)
 - `limit` (optional): Items per page (default: 10, min: 1, max: 100)
 - `type` (optional): Filter by transaction type
-- `category` (optional): Filter by category (case-insensitive partial match)
+- `categoryId` (optional): Filter by category ID
 - `accountId` (optional): Filter by account ID
 - `startDate` (optional): Filter transactions from this date (ISO 8601)
 - `endDate` (optional): Filter transactions until this date (ISO 8601)
@@ -125,7 +125,7 @@ Authorization: Bearer <your-jwt-token>
 
 **Example Request:**
 ```
-GET /api/transactions?page=1&limit=20&type=expense&accountId=65a1b2c3d4e5f6789012347&startDate=2024-01-01&endDate=2024-01-31&sortBy=date&sortOrder=desc
+GET /api/transactions?page=1&limit=20&type=expense&categoryId=65a1b2c3d4e5f6789012348&accountId=65a1b2c3d4e5f6789012347&startDate=2024-01-01&endDate=2024-01-31&sortBy=date&sortOrder=desc
 ```
 
 **Response:**
@@ -143,7 +143,13 @@ GET /api/transactions?page=1&limit=20&type=expense&accountId=65a1b2c3d4e5f678901
           "email": "john@example.com"
         },
         "type": "expense",
-        "category": "Food & Dining",
+        "categoryId": {
+          "_id": "65a1b2c3d4e5f6789012348",
+          "name": "Food & Dining",
+          "description": "Expenses related to food and dining",
+          "color": "#f59e0b",
+          "icon": "restaurant"
+        },
         "amount": 25.50,
         "description": "Lunch at restaurant",
         "date": "2024-01-15T12:30:00.000Z",
@@ -226,7 +232,7 @@ GET /api/transactions?page=1&limit=20&type=expense&accountId=65a1b2c3d4e5f678901
 ```json
 {
   "type": "expense",
-  "category": "Food & Dining",
+  "categoryId": "65a1b2c3d4e5f6789012348",
   "amount": 30.00,
   "description": "Updated lunch description",
   "date": "2024-01-15T12:30:00.000Z",

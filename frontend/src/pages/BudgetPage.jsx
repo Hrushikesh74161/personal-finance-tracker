@@ -1,228 +1,377 @@
-import { Box, Grid, LinearProgress, Chip } from "@mui/material";
-import { Add, Savings, TrendingUp, Warning, CheckCircle } from "@mui/icons-material";
-import PageHeader from "../components/common/PageHeader";
+import { Add, Delete, Edit, TrendingUp, CalendarToday, AttachMoney } from "@mui/icons-material";
+import { Box, Chip, Grid, IconButton, Tooltip, Typography, Card, CardContent, LinearProgress } from "@mui/material";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useDeleteBudgetMutation } from "../api/useDeleteBudgetMutation";
+import { useGetBudgetsQuery } from "../api/useGetBudgetsQuery";
+import { useGetBudgetStatsQuery } from "../api/useGetBudgetStatsQuery";
+import { useGetCurrentBudgetsQuery } from "../api/useGetCurrentBudgetsQuery";
+import Button from "../components/common/Button";
 import ModernCard from "../components/common/ModernCard";
+import BudgetCreateUpdateModal from "../components/modals/BudgetCreateUpdateModal";
+import ConfirmationModal from "../components/modals/CofirmationModal";
 
+/**
+ * Budget page component displaying user's budgets
+ * @returns {JSX.Element} The budget page component
+ */
 export default function BudgetPage() {
-  const budgets = [
-    {
-      name: "Food & Dining",
-      spent: 450,
-      limit: 600,
-      percentage: 75,
-      status: "warning",
-      icon: "🍽️",
-    },
-    {
-      name: "Transportation",
-      spent: 200,
-      limit: 300,
-      percentage: 67,
-      status: "good",
-      icon: "🚗",
-    },
-    {
-      name: "Entertainment",
-      spent: 150,
-      limit: 200,
-      percentage: 75,
-      status: "warning",
-      icon: "🎬",
-    },
-    {
-      name: "Shopping",
-      spent: 80,
-      limit: 400,
-      percentage: 20,
-      status: "good",
-      icon: "🛍️",
-    },
-  ];
+  const queryClient = useQueryClient();
+  const [budgetCreateUpdateModalOpen, setBudgetCreateUpdateModalOpen] = useState(false);
+  const [editingBudget, setEditingBudget] = useState(null);
+  const [deleteBudgetModalOpen, setDeleteBudgetModalOpen] = useState(false);
+  const [deletingBudget, setDeletingBudget] = useState(null);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'good': return '#10b981';
-      case 'warning': return '#f59e0b';
-      case 'danger': return '#ef4444';
-      default: return '#667eea';
+  // Fetch budgets data
+  const { data: budgetsData, isLoading: budgetsLoading, error: budgetsError } = useGetBudgetsQuery();
+  const { data: budgetStats, isLoading: statsLoading } = useGetBudgetStatsQuery();
+  const { data: currentBudgets, isLoading: currentBudgetsLoading } = useGetCurrentBudgetsQuery();
+
+  // Delete budget mutation
+  const deleteBudgetMutation = useDeleteBudgetMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["budgetStats"] });
+      queryClient.invalidateQueries({ queryKey: ["currentBudgets"] });
+    },
+    onError: (error) => {
+      console.error('Failed to delete budget:', error);
     }
+  });
+
+  /* Budget create/update modal handlers */
+  const handleEditBudget = (budget) => {
+    setEditingBudget(budget);
+    setBudgetCreateUpdateModalOpen(true);
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'good': return <CheckCircle sx={{ color: '#10b981', fontSize: 20 }} />;
-      case 'warning': return <Warning sx={{ color: '#f59e0b', fontSize: 20 }} />;
-      case 'danger': return <Warning sx={{ color: '#ef4444', fontSize: 20 }} />;
-      default: return null;
-    }
+  const handleAddBudget = () => {
+    setEditingBudget(null);
+    setBudgetCreateUpdateModalOpen(true);
+  };
+
+  const handleBudgetCreateUpdateModalClose = () => {
+    setBudgetCreateUpdateModalOpen(false);
+    setEditingBudget(null);
+  };
+
+  const handleBudgetCreateUpdateModalSuccess = () => {
+    handleBudgetCreateUpdateModalClose();
+    queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    queryClient.invalidateQueries({ queryKey: ["budgetStats"] });
+    queryClient.invalidateQueries({ queryKey: ["currentBudgets"] });
+  };
+
+  /* Delete budget modal handlers */
+  const handleDeleteBudget = (budget) => {
+    setDeletingBudget(budget);
+    setDeleteBudgetModalOpen(true);
+  };
+
+  const handleDeleteBudgetModalClose = () => {
+    setDeleteBudgetModalOpen(false);
+    setDeletingBudget(null);
+  };
+
+  const handleDeleteBudgetModalConfirm = () => {
+    deleteBudgetMutation.mutate(deletingBudget._id);
+    setDeleteBudgetModalOpen(false);
+    setDeletingBudget(null);
+    queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    queryClient.invalidateQueries({ queryKey: ["budgetStats"] });
+    queryClient.invalidateQueries({ queryKey: ["currentBudgets"] });
+  };
+
+  // Loading state
+  if (budgetsLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <Typography>Loading budgets...</Typography>
+      </Box>
+    );
+  }
+
+  // Error state
+  if (budgetsError) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <Typography color="error">Failed to load budgets</Typography>
+        <Typography color="error">{JSON.stringify(budgetsError?.message)}</Typography>
+      </Box>
+    );
+  }
+
+  const budgets = budgetsData?.budgets || [];
+  const stats = budgetStats || {};
+  const currentBudgetsList = currentBudgets || [];
+
+  // Helper function to format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+
+  // Helper function to format date
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString();
+  };
+
+  // Helper function to get budget status
+  const getBudgetStatus = (budget) => {
+    const now = new Date();
+    const startDate = new Date(budget.startDate);
+    const endDate = new Date(budget.endDate);
+
+    if (now < startDate) return { status: 'upcoming', color: 'info' };
+    if (now > endDate) return { status: 'expired', color: 'error' };
+    return { status: 'active', color: 'success' };
   };
 
   return (
-    <Box>
-      <PageHeader 
-        title="Budgets" 
-        subtitle="Track your spending against budget limits"
-        action={() => console.log('Create budget')}
-        actionIcon={<Add />}
-        actionText="Create Budget"
-      />
+    <Box sx={{ p: 3 }}>
+      {/* Page Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+            Budget Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Track and manage your spending budgets
+          </Typography>
+        </Box>
+        <Button
+          startIcon={<Add />}
+          onClick={handleAddBudget}
+          sx={{ minWidth: 140 }}
+        >
+          Add Budget
+        </Button>
+      </Box>
 
-      <Grid container spacing={3}>
-        {budgets.map((budget, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <ModernCard
-              title={budget.name}
-              subtitle={`$${budget.spent} / $${budget.limit}`}
-              icon={<Savings />}
-              color={getStatusColor(budget.status)}
-              onClick={() => console.log('View budget', budget.name)}
-            >
-              <Box sx={{ mt: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                  <Box sx={{ fontSize: '2rem' }}>{budget.icon}</Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {getStatusIcon(budget.status)}
-                    <Chip
-                      label={budget.status === 'good' ? 'On Track' : budget.status === 'warning' ? 'Warning' : 'Over Budget'}
-                      size="small"
-                      sx={{
-                        backgroundColor: `${getStatusColor(budget.status)}20`,
-                        color: getStatusColor(budget.status),
-                        fontWeight: 600,
-                        fontSize: '0.75rem',
-                      }}
-                    />
-                  </Box>
-                </Box>
-                
-                <Box sx={{ mb: 2 }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={budget.percentage}
-                    sx={{ 
-                      height: 8, 
-                      borderRadius: 4,
-                      backgroundColor: 'rgba(0,0,0,0.1)',
-                      '& .MuiLinearProgress-bar': {
-                        backgroundColor: getStatusColor(budget.status),
-                        borderRadius: 4,
-                      }
-                    }}
-                  />
-                </Box>
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-                    {budget.percentage}% used
-                  </Box>
-                  <Box sx={{ 
-                    fontSize: '0.875rem', 
-                    color: getStatusColor(budget.status),
-                    fontWeight: 600
-                  }}>
-                    ${budget.limit - budget.spent} left
-                  </Box>
-                </Box>
+      {/* Stats Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <ModernCard>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <TrendingUp sx={{ color: 'primary.main', mr: 1 }} />
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Total Budgets
+                </Typography>
               </Box>
-            </ModernCard>
-          </Grid>
-        ))}
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                {stats.totalBudgets || 0}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {stats.activeBudgets || 0} active
+              </Typography>
+            </CardContent>
+          </ModernCard>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <ModernCard>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <AttachMoney sx={{ color: 'success.main', mr: 1 }} />
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Total Amount
+                </Typography>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main' }}>
+                {formatCurrency(stats.totalBudgetAmount || 0)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Across all budgets
+              </Typography>
+            </CardContent>
+          </ModernCard>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <ModernCard>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <CalendarToday sx={{ color: 'info.main', mr: 1 }} />
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Current Budgets
+                </Typography>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'info.main' }}>
+                {currentBudgetsList.length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Active this period
+              </Typography>
+            </CardContent>
+          </ModernCard>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <ModernCard>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <TrendingUp sx={{ color: 'warning.main', mr: 1 }} />
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Avg. Budget
+                </Typography>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'warning.main' }}>
+                {formatCurrency(stats.totalBudgets ? (stats.totalBudgetAmount / stats.totalBudgets) : 0)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Per budget
+              </Typography>
+            </CardContent>
+          </ModernCard>
+        </Grid>
       </Grid>
 
-      <Box sx={{ mt: 4 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <ModernCard
-              title="Budget Overview"
-              subtitle="Monthly spending summary"
-              icon={<TrendingUp />}
-              color="#667eea"
-            >
-              <Box sx={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(2, 1fr)', 
-                gap: 3,
-                mt: 2
-              }}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Box sx={{ fontSize: '2rem', fontWeight: 700, color: '#10b981', mb: 1 }}>
-                    $880
-                  </Box>
-                  <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-                    Total Spent
-                  </Box>
-                </Box>
-                
-                <Box sx={{ textAlign: 'center' }}>
-                  <Box sx={{ fontSize: '2rem', fontWeight: 700, color: '#667eea', mb: 1 }}>
-                    $1,500
-                  </Box>
-                  <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-                    Total Budget
-                  </Box>
-                </Box>
-                
-                <Box sx={{ textAlign: 'center' }}>
-                  <Box sx={{ fontSize: '2rem', fontWeight: 700, color: '#f59e0b', mb: 1 }}>
-                    59%
-                  </Box>
-                  <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-                    Budget Used
-                  </Box>
-                </Box>
-                
-                <Box sx={{ textAlign: 'center' }}>
-                  <Box sx={{ fontSize: '2rem', fontWeight: 700, color: '#10b981', mb: 1 }}>
-                    $620
-                  </Box>
-                  <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-                    Remaining
-                  </Box>
-                </Box>
-              </Box>
-            </ModernCard>
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <ModernCard
-              title="Budget Tips"
-              subtitle="Helpful insights"
-              icon={<Savings />}
-              color="#10b981"
-            >
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                <Box sx={{ 
-                  p: 2, 
-                  borderRadius: 2, 
-                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                  border: '1px solid rgba(16, 185, 129, 0.2)',
-                }}>
-                  <Box sx={{ fontWeight: 600, mb: 0.5, color: '#10b981' }}>
-                    💡 Great job on Shopping budget!
-                  </Box>
-                  <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-                    You're only using 20% of your shopping budget this month.
-                  </Box>
-                </Box>
-                
-                <Box sx={{ 
-                  p: 2, 
-                  borderRadius: 2, 
-                  backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                  border: '1px solid rgba(245, 158, 11, 0.2)',
-                }}>
-                  <Box sx={{ fontWeight: 600, mb: 0.5, color: '#f59e0b' }}>
-                    ⚠️ Watch your Food & Dining spending
-                  </Box>
-                  <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-                    You're at 75% of your budget with 2 weeks left in the month.
-                  </Box>
-                </Box>
-              </Box>
-            </ModernCard>
-          </Grid>
-        </Grid>
-      </Box>
+      {/* Budgets List */}
+      <ModernCard>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+            All Budgets
+          </Typography>
+
+          {budgets.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                No budgets created yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Create your first budget to start tracking your spending
+              </Typography>
+              <Button
+                startIcon={<Add />}
+                onClick={handleAddBudget}
+                variant="outlined"
+              >
+                Create Budget
+              </Button>
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {budgets.map((budget) => {
+                const budgetStatus = getBudgetStatus(budget);
+                return (
+                  <Grid item xs={12} sm={6} md={4} key={budget._id}>
+                    <Card
+                      sx={{
+                        height: '100%',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        '&:hover': {
+                          boxShadow: 2,
+                          transform: 'translateY(-2px)',
+                        },
+                        transition: 'all 0.2s ease-in-out',
+                      }}
+                    >
+                      <CardContent>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                              {budget.name}
+                            </Typography>
+                            <Chip
+                              label={budgetStatus.status}
+                              color={budgetStatus.color}
+                              size="small"
+                              sx={{ mb: 1 }}
+                            />
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            <Tooltip title="Edit Budget">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleEditBudget(budget)}
+                              >
+                                <Edit fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete Budget">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteBudget(budget)}
+                                color="error"
+                              >
+                                <Delete fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                            {formatCurrency(budget.amount)}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            per {budget.period}
+                          </Typography>
+                        </Box>
+
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            Category: {budget.categoryId?.name || 'Unknown'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Period: {formatDate(budget.startDate)} - {formatDate(budget.endDate)}
+                          </Typography>
+                        </Box>
+
+                        {budget.description && (
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            {budget.description}
+                          </Typography>
+                        )}
+
+                        {/* Progress bar for active budgets */}
+                        {budgetStatus.status === 'active' && (
+                          <Box sx={{ mt: 2 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              Progress
+                            </Typography>
+                            <LinearProgress
+                              variant="determinate"
+                              value={50} // This would be calculated based on actual spending
+                              sx={{ height: 6, borderRadius: 3 }}
+                            />
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                              50% used
+                            </Typography>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          )}
+        </CardContent>
+      </ModernCard>
+
+      {/* Modals */}
+      <BudgetCreateUpdateModal
+        open={budgetCreateUpdateModalOpen}
+        onClose={handleBudgetCreateUpdateModalClose}
+        budget={editingBudget}
+        onSuccess={handleBudgetCreateUpdateModalSuccess}
+      />
+
+      <ConfirmationModal
+        open={deleteBudgetModalOpen}
+        onClose={handleDeleteBudgetModalClose}
+        onConfirm={handleDeleteBudgetModalConfirm}
+        title="Delete Budget"
+        message={`Are you sure you want to delete "${deletingBudget?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="error"
+      />
     </Box>
   );
 }

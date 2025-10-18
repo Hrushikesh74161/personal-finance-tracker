@@ -13,12 +13,12 @@ export const createTransactionValidationSchema = [
     .isIn(Object.values(transactionTypes))
     .withMessage(`Transaction type must be one of: ${Object.values(transactionTypes).join(", ")}`),
 
-  body("category")
+  body("categoryId")
     .trim()
     .notEmpty()
     .withMessage("Category is required")
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Category must be between 1 and 100 characters"),
+    .isMongoId()
+    .withMessage("Category ID must be a valid MongoDB ObjectId"),
 
   body("amount")
     .isNumeric()
@@ -80,11 +80,11 @@ export const updateTransactionValidationSchema = [
     .isIn(Object.values(transactionTypes))
     .withMessage(`Transaction type must be one of: ${Object.values(transactionTypes).join(", ")}`),
 
-  body("category")
+  body("categoryId")
     .optional()
     .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Category must be between 1 and 100 characters"),
+    .isMongoId()
+    .withMessage("Category ID must be a valid MongoDB ObjectId"),
 
   body("amount")
     .optional()
@@ -173,11 +173,11 @@ export const getTransactionsValidationSchema = [
     .isIn(Object.values(transactionTypes))
     .withMessage(`Type filter must be one of: ${Object.values(transactionTypes).join(", ")}`),
 
-  query("category")
+  query("categoryId")
     .optional()
     .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Category filter must be between 1 and 100 characters"),
+    .isMongoId()
+    .withMessage("Category ID filter must be a valid MongoDB ObjectId"),
 
   query("accountId")
     .optional()

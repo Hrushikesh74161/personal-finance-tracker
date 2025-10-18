@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useDeleteTransactionMutation } from "../../api/useDeleteTransactionMutation";
 import { useGetTransactionsQuery } from "../../api/useGetTransactionsQuery";
+import { useGetCategoriesQuery } from "../../api/useGetCategoriesQuery";
 import ModernCard from "../../components/common/ModernCard";
 import Button from "../../components/common/Button";
 import ConfirmationModal from "../../components/modals/CofirmationModal";
@@ -20,10 +21,16 @@ export default function TransactionsPage() {
   const [deleteTransactionModalOpen, setDeleteTransactionModalOpen] = useState(false);
   const [deletingTransaction, setDeletingTransaction] = useState(null);
   const [filterType, setFilterType] = useState('all'); // 'all', 'income', 'expense'
+  const [filterCategory, setFilterCategory] = useState('all'); // 'all' or categoryId
+
+  // Fetch categories for filtering
+  const { data: categoriesData } = useGetCategoriesQuery();
+  const categories = categoriesData?.categories || [];
 
   // Fetch transactions data with filter
   const { data: transactionsData, isLoading: transactionsLoading, error: transactionsError } = useGetTransactionsQuery({
     type: filterType === 'all' ? undefined : filterType,
+    categoryId: filterCategory === 'all' ? undefined : filterCategory,
     limit: 50, // Get more transactions for better overview
     sortBy: 'date',
     sortOrder: 'desc'
@@ -42,38 +49,29 @@ export default function TransactionsPage() {
   });
 
   const getCategoryColor = (category) => {
-    const colors = {
-      "Food & Dining": "#f59e0b",
-      "Income": "#10b981",
-      "Transportation": "#3b82f6",
-      "Entertainment": "#8b5cf6",
-      "Shopping": "#ef4444",
-      "Bills & Utilities": "#8b5cf6",
-      "Healthcare": "#ef4444",
-      "Education": "#3b82f6",
-      "Travel": "#10b981",
-      "Transfer": "#667eea",
-      "Other": "#6b7280",
-    };
-    return colors[category] || "#6b7280";
+    return category?.color || "#6b7280";
   };
 
   // Get transaction icon based on category
   const getTransactionIcon = (category) => {
-    const icons = {
-      "Food & Dining": "🍽️",
-      "Income": "💰",
-      "Transportation": "🚗",
-      "Entertainment": "🎬",
-      "Shopping": "🛍️",
-      "Bills & Utilities": "💡",
-      "Healthcare": "🏥",
-      "Education": "📚",
-      "Travel": "✈️",
-      "Transfer": "🔄",
-      "Other": "📝",
-    };
-    return icons[category] || "💳";
+    // Use category icon if available, otherwise use a default
+    if (category?.icon) {
+      // Map common icon names to emojis
+      const iconMap = {
+        "restaurant": "🍽️",
+        "shopping": "🛍️",
+        "car": "🚗",
+        "home": "🏠",
+        "health": "🏥",
+        "entertainment": "🎬",
+        "education": "📚",
+        "travel": "✈️",
+        "gift": "🎁",
+        "category": "📝",
+      };
+      return iconMap[category.icon] || "💳";
+    }
+    return "💳";
   };
 
   // Format currency
@@ -136,6 +134,10 @@ export default function TransactionsPage() {
   // Filter handlers
   const handleFilterChange = (type) => {
     setFilterType(type);
+  };
+
+  const handleCategoryFilterChange = (categoryId) => {
+    setFilterCategory(categoryId);
   };
 
   // Calculate summary data
@@ -204,30 +206,65 @@ export default function TransactionsPage() {
         </Box>
 
         {/* Filter buttons */}
-        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-          <Button
-            variant={filterType === 'all' ? 'contained' : 'outlined'}
-            onClick={() => handleFilterChange('all')}
-            size="small"
-          >
-            All
-          </Button>
-          <Button
-            variant={filterType === 'income' ? 'contained' : 'outlined'}
-            onClick={() => handleFilterChange('income')}
-            size="small"
-            sx={{ color: filterType === 'income' ? 'white' : '#10b981' }}
-          >
-            Income
-          </Button>
-          <Button
-            variant={filterType === 'expense' ? 'contained' : 'outlined'}
-            onClick={() => handleFilterChange('expense')}
-            size="small"
-            sx={{ color: filterType === 'expense' ? 'white' : '#ef4444' }}
-          >
-            Expenses
-          </Button>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
+          {/* Transaction Type Filters */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant={filterType === 'all' ? 'contained' : 'outlined'}
+              onClick={() => handleFilterChange('all')}
+              size="small"
+            >
+              All Types
+            </Button>
+            <Button
+              variant={filterType === 'income' ? 'contained' : 'outlined'}
+              onClick={() => handleFilterChange('income')}
+              size="small"
+              sx={{ color: filterType === 'income' ? 'white' : '#10b981' }}
+            >
+              Income
+            </Button>
+            <Button
+              variant={filterType === 'expense' ? 'contained' : 'outlined'}
+              onClick={() => handleFilterChange('expense')}
+              size="small"
+              sx={{ color: filterType === 'expense' ? 'white' : '#ef4444' }}
+            >
+              Expenses
+            </Button>
+          </Box>
+
+          {/* Category Filters */}
+          {categories.length > 0 && (
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant={filterCategory === 'all' ? 'contained' : 'outlined'}
+                onClick={() => handleCategoryFilterChange('all')}
+                size="small"
+              >
+                All Categories
+              </Button>
+              {categories.map((category) => (
+                <Button
+                  key={category._id}
+                  variant={filterCategory === category._id ? 'contained' : 'outlined'}
+                  onClick={() => handleCategoryFilterChange(category._id)}
+                  size="small"
+                  sx={{
+                    color: filterCategory === category._id ? 'white' : category.color || '#6b7280',
+                    borderColor: category.color || '#6b7280',
+                    '&:hover': {
+                      backgroundColor: filterCategory === category._id 
+                        ? undefined 
+                        : `${category.color || '#6b7280'}20`,
+                    }
+                  }}
+                >
+                  {category.name}
+                </Button>
+              ))}
+            </Box>
+          )}
         </Box>
       </Box>
 
@@ -246,9 +283,9 @@ export default function TransactionsPage() {
                     No transactions found
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    {filterType === 'all' 
+                    {filterType === 'all' && filterCategory === 'all'
                       ? 'Start by adding your first transaction' 
-                      : `No ${filterType} transactions found`
+                      : `No transactions found for the selected filters`
                     }
                   </Typography>
                 </Box>
@@ -279,7 +316,7 @@ export default function TransactionsPage() {
                         fontSize: '1.2rem',
                       }}
                     >
-                      {getTransactionIcon(transaction.category)}
+                      {getTransactionIcon(transaction.categoryId)}
                     </Avatar>
 
                     <Box sx={{ flexGrow: 1 }}>
@@ -287,11 +324,11 @@ export default function TransactionsPage() {
                         {transaction.description}
                       </Box>
                       <Chip
-                        label={transaction.category}
+                        label={transaction.categoryId?.name || 'Unknown Category'}
                         size="small"
                         sx={{
-                          backgroundColor: `${getCategoryColor(transaction.category)}20`,
-                          color: getCategoryColor(transaction.category),
+                          backgroundColor: `${getCategoryColor(transaction.categoryId)}20`,
+                          color: getCategoryColor(transaction.categoryId),
                           fontWeight: 500,
                           fontSize: '0.75rem',
                         }}

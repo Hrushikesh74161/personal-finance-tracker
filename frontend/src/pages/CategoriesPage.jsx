@@ -1,139 +1,260 @@
-import { Box, Grid, Chip, Avatar } from "@mui/material";
-import { Add, Restaurant, DirectionsCar, ShoppingCart, Home, LocalHospital, School, SportsEsports, Category } from "@mui/icons-material";
-import PageHeader from "../components/common/PageHeader";
+import { Add, Category, Delete, Edit, Palette } from "@mui/icons-material";
+import { Box, Chip, Grid, IconButton, Tooltip, Typography } from "@mui/material";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useDeleteCategoryMutation } from "../api/useDeleteCategoryMutation";
+import { useGetCategoriesQuery } from "../api/useGetCategoriesQuery";
+import { useGetCategoryStatsQuery } from "../api/useGetCategoryStatsQuery";
+import Button from "../components/common/Button";
 import ModernCard from "../components/common/ModernCard";
+import CategoryCreateUpdateModal from "../components/modals/CategoryCreateUpdateModal";
+import ConfirmationModal from "../components/modals/CofirmationModal";
 
+/**
+ * Categories page component displaying user's expense categories
+ * @returns {JSX.Element} The categories page component
+ */
 export default function CategoriesPage() {
-  const categories = [
-    {
-      name: "Food & Dining",
-      icon: <Restaurant />,
-      color: "#f59e0b",
-      transactionCount: 45,
-      emoji: "🍽️",
-      totalSpent: "$1,250.00",
+  const queryClient = useQueryClient();
+  const [categoryCreateUpdateModalOpen, setCategoryCreateUpdateModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [deleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState(null);
+
+  // Fetch categories data
+  const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useGetCategoriesQuery();
+  const { data: categoryStats, isLoading: statsLoading } = useGetCategoryStatsQuery();
+
+  // Delete category mutation
+  const deleteCategoryMutation = useDeleteCategoryMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories", "stats"] });
     },
-    {
-      name: "Transportation",
-      icon: <DirectionsCar />,
-      color: "#3b82f6",
-      transactionCount: 23,
-      emoji: "🚗",
-      totalSpent: "$450.00",
-    },
-    {
-      name: "Shopping",
-      icon: <ShoppingCart />,
-      color: "#ef4444",
-      transactionCount: 18,
-      emoji: "🛍️",
-      totalSpent: "$800.00",
-    },
-    {
-      name: "Housing",
-      icon: <Home />,
-      color: "#10b981",
-      transactionCount: 12,
-      emoji: "🏠",
-      totalSpent: "$1,200.00",
-    },
-    {
-      name: "Healthcare",
-      icon: <LocalHospital />,
-      color: "#8b5cf6",
-      transactionCount: 8,
-      emoji: "🏥",
-      totalSpent: "$300.00",
-    },
-    {
-      name: "Education",
-      icon: <School />,
-      color: "#06b6d4",
-      transactionCount: 5,
-      emoji: "📚",
-      totalSpent: "$150.00",
-    },
-    {
-      name: "Entertainment",
-      icon: <SportsEsports />,
-      color: "#ec4899",
-      transactionCount: 15,
-      emoji: "🎬",
-      totalSpent: "$200.00",
-    },
-  ];
+    onError: (error) => {
+      console.error('Failed to delete category:', error);
+    }
+  });
+
+  /* Category create/update modal handlers */
+  const handleEditCategory = (category) => {
+    setEditingCategory(category);
+    setCategoryCreateUpdateModalOpen(true);
+  };
+
+  const handleAddCategory = () => {
+    setEditingCategory(null);
+    setCategoryCreateUpdateModalOpen(true);
+  };
+
+  const handleCategoryCreateUpdateModalClose = () => {
+    setCategoryCreateUpdateModalOpen(false);
+    setEditingCategory(null);
+  };
+
+  const handleCategoryCreateUpdateModalSuccess = () => {
+    handleCategoryCreateUpdateModalClose();
+    queryClient.invalidateQueries({ queryKey: ["categories"] });
+    queryClient.invalidateQueries({ queryKey: ["categories", "stats"] });
+  };
+
+  /* Delete category modal handlers */
+  const handleDeleteCategory = (category) => {
+    setDeletingCategory(category);
+    setDeleteCategoryModalOpen(true);
+  };
+
+  const handleDeleteCategoryModalClose = () => {
+    setDeleteCategoryModalOpen(false);
+    setDeletingCategory(null);
+  };
+
+  const handleDeleteCategoryModalConfirm = () => {
+    deleteCategoryMutation.mutate(deletingCategory._id);
+    setDeleteCategoryModalOpen(false);
+    setDeletingCategory(null);
+    queryClient.invalidateQueries({ queryKey: ["categories"] });
+    queryClient.invalidateQueries({ queryKey: ["categories", "stats"] });
+  };
+
+  // Loading state
+  if (categoriesLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <Typography>Loading categories...</Typography>
+      </Box>
+    );
+  }
+
+  // Error state
+  if (categoriesError) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <Typography color="error">Failed to load categories</Typography>
+        <Typography color="error">{JSON.stringify(categoriesError?.message)}</Typography>
+      </Box>
+    );
+  }
+
+  const categories = categoriesData?.categories || [];
+  const stats = categoryStats || {};
 
   return (
     <Box>
-      <PageHeader 
-        title="Categories" 
-        subtitle="Organize your transactions by category"
-        action={() => console.log('Add category')}
-        actionIcon={<Add />}
-        actionText="Add Category"
-      />
+      {/* Page Header */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Box>
+            <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 400 }}>
+              Organize your expenses with custom categories
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              startIcon={<Add />}
+              onClick={handleAddCategory}
+              sx={{
+                borderRadius: 3,
+                px: 3,
+                py: 1.5,
+              }}
+            >
+              Add Category
+            </Button>
+          </Box>
+        </Box>
+      </Box>
 
+      {/* Category Management Card */}
+      <Box sx={{ mb: 4 }}>
+        <ModernCard
+          title="Category Management"
+          subtitle="Overview and insights"
+          icon={<Category />}
+          color="#8B5CF6"
+        >
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: 3,
+            mt: 2
+          }}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Box sx={{ fontSize: '2rem', fontWeight: 700, color: '#8B5CF6', mb: 1 }}>
+                {stats.totalCategories || categories.length}
+              </Box>
+              <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+                Total Categories
+              </Box>
+            </Box>
+
+            <Box sx={{ textAlign: 'center' }}>
+              <Box sx={{ fontSize: '2rem', fontWeight: 700, color: '#10B981', mb: 1 }}>
+                {stats.activeCategories || categories.filter(cat => cat.isActive).length}
+              </Box>
+              <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+                Active Categories
+              </Box>
+            </Box>
+
+            <Box sx={{ textAlign: 'center' }}>
+              <Box sx={{ fontSize: '2rem', fontWeight: 700, color: '#F59E0B', mb: 1 }}>
+                {categories.filter(cat => !cat.isActive).length}
+              </Box>
+              <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+                Inactive Categories
+              </Box>
+            </Box>
+          </Box>
+        </ModernCard>
+      </Box>
+
+      {/* Categories Grid */}
       <Grid container spacing={3}>
-        {categories.map((category, index) => (
-          <Grid item xs={12} sm={6} md={4} key={index}>
+        {categories.map((category) => (
+          <Grid item xs={12} sm={6} md={4} key={category._id}>
             <ModernCard
               title={category.name}
-              subtitle={`${category.transactionCount} transactions`}
-              icon={category.icon}
+              subtitle={category.description || "No description"}
+              icon={<Palette />}
               color={category.color}
-              onClick={() => console.log('View category', category.name)}
+              sx={{ height: '100%' }}
             >
               <Box sx={{ mt: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                  <Avatar
-                    sx={{
-                      width: 48,
-                      height: 48,
-                      backgroundColor: `${category.color}20`,
-                      color: category.color,
-                      fontSize: '1.5rem',
-                    }}
-                  >
-                    {category.emoji}
-                  </Avatar>
-                  
-                  <Box sx={{ textAlign: 'right' }}>
-                    <Box sx={{ 
-                      fontSize: '1.25rem', 
-                      fontWeight: 700, 
-                      color: category.color,
-                      mb: 0.5
-                    }}>
-                      {category.totalSpent}
-                    </Box>
-                    <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                      Total Spent
-                    </Box>
+                <Box sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 2
+                }}>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        backgroundColor: category.color,
+                        border: '2px solid white',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                    <Chip
+                      label={category.isActive ? "Active" : "Inactive"}
+                      size="small"
+                      color={category.isActive ? "success" : "default"}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="Edit Category">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditCategory(category)}
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'primary.main' }
+                        }}
+                      >
+                        <Edit fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Category">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteCategory(category)}
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'error.main' }
+                        }}
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </Box>
                 </Box>
-                
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  p: 1.5,
-                  borderRadius: 2,
-                  backgroundColor: 'rgba(0,0,0,0.02)',
-                  border: '1px solid rgba(0,0,0,0.05)',
-                }}>
-                  <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-                    Transactions
+
+                {category.icon && (
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    mb: 2
+                  }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Icon:
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {category.icon}
+                    </Typography>
                   </Box>
-                  <Chip
-                    label={category.transactionCount}
-                    size="small"
-                    sx={{
-                      backgroundColor: `${category.color}20`,
-                      color: category.color,
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
-                    }}
-                  />
+                )}
+
+                <Box sx={{
+                  fontSize: '0.875rem',
+                  color: 'text.secondary',
+                  fontStyle: 'italic'
+                }}>
+                  Created {new Date(category.createdAt).toLocaleDateString()}
                 </Box>
               </Box>
             </ModernCard>
@@ -141,77 +262,35 @@ export default function CategoriesPage() {
         ))}
       </Grid>
 
-      <Box sx={{ mt: 4 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
-            <ModernCard
-              title="Category Overview"
-              subtitle="Spending breakdown by category"
-              icon={<Category />}
-              color="#667eea"
-            >
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                minHeight: 200,
-                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
-                borderRadius: 3,
-                border: '2px dashed rgba(102, 126, 234, 0.2)',
-              }}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Category sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                  <Box sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                    Category spending chart will appear here
-                  </Box>
-                </Box>
-              </Box>
-            </ModernCard>
-          </Grid>
-          
-          <Grid item xs={12} md={4}>
-            <ModernCard
-              title="Top Categories"
-              subtitle="Your highest spending categories"
-              icon={<Category />}
-              color="#f59e0b"
-            >
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                {categories.slice(0, 5).map((category, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      p: 1.5,
-                      borderRadius: 2,
-                      backgroundColor: 'rgba(0,0,0,0.02)',
-                      border: '1px solid rgba(0,0,0,0.05)',
-                    }}
-                  >
-                    <Box sx={{ fontSize: '1.5rem', mr: 2 }}>{category.emoji}</Box>
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Box sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
-                        {category.name}
-                      </Box>
-                      <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                        {category.transactionCount} transactions
-                      </Box>
-                    </Box>
-                    <Box sx={{ 
-                      fontSize: '0.875rem', 
-                      fontWeight: 600, 
-                      color: category.color 
-                    }}>
-                      {category.totalSpent}
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-            </ModernCard>
-          </Grid>
-        </Grid>
-      </Box>
+      {/* Category Create/Update Modal */}
+      {categoryCreateUpdateModalOpen && (
+        <CategoryCreateUpdateModal
+          open={categoryCreateUpdateModalOpen}
+          onClose={handleCategoryCreateUpdateModalClose}
+          category={editingCategory}
+          onSuccess={handleCategoryCreateUpdateModalSuccess}
+        />
+      )}
+
+      {/* Delete Category Modal */}
+      {deleteCategoryModalOpen && (
+        <ConfirmationModal
+          open={deleteCategoryModalOpen}
+          onClose={handleDeleteCategoryModalClose}
+          onConfirm={handleDeleteCategoryModalConfirm}
+          title="Delete Category"
+          message={`Are you sure you want to delete ${deletingCategory?.name}?`}
+          description="This action cannot be undone. Any transactions using this category will need to be updated."
+          confirmText="Delete"
+          cancelText="Cancel"
+          confirmColor="error"
+          cancelColor="secondary"
+          confirmDisabled={deleteCategoryMutation.isPending}
+          cancelDisabled={deleteCategoryMutation.isPending}
+          showCancel={true}
+          size="small"
+        />
+      )}
     </Box>
   );
 }
