@@ -1,0 +1,62 @@
+{
+  "name": "Personal-Expense-Tracker",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node ./src/server.js",
+    "dev": "nodemon ./src/server.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:middleware": "jest tests/middleware/",
+    "test:services": "jest tests/services/",
+    "test:auth": "jest tests/services/authService.test.js",
+    "test:transactions": "jest tests/services/transactionService.test.js",
+    "test:validate": "jest tests/middleware/validateRequest.test.js",
+    "test:token": "jest tests/middleware/verifyToken.test.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.12.2",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-validator": "^7.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.1",
+    "morgan": "^1.10.1",
+    "nodemon": "^3.1.10"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "extensionsToTreatAsEsm": [".js"],
+    "globals": {
+      "ts-jest": {
+        "useESM": true
+      }
+    },
+    "moduleNameMapping": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/server.js",
+      "!src/app.js"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov", "html"]
+  }
+}
