@@ -2,7 +2,7 @@ import { CheckCircleOutline, WarningOutlined } from "@mui/icons-material";
 import { Typography } from "@mui/material";
 import { AnimatePresence, motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
-import { hideToast } from "../../redux/toastSlice";
+import { hideToast } from "../../redux/slices/toastSlice";
 
 export function Toast() {
   const dispatch = useDispatch();

@@ -1,19 +1,22 @@
-import { Box, Grid, Typography, IconButton, Tooltip } from "@mui/material";
-import Button from "../components/common/Button";
-import { Add, AccountBalance, CreditCard, Savings, Edit, Delete, SwapHoriz } from "@mui/icons-material";
-import PageHeader from "../components/common/PageHeader";
-import ModernCard from "../components/common/ModernCard";
-import { useGetAccountsQuery } from "../api/useGetAccountsQuery";
-import { useGetAccountBalanceSummaryQuery } from "../api/useGetAccountBalanceSummaryQuery";
-import { useDeleteAccountMutation } from "../api/useDeleteAccountMutation";
+import { AccountBalance, Add, CreditCard, Delete, Edit, Savings, SwapHoriz } from "@mui/icons-material";
+import { Box, Grid, IconButton, Tooltip, Typography } from "@mui/material";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useDeleteAccountMutation } from "../api/useDeleteAccountMutation";
+import { useGetAccountBalanceSummaryQuery } from "../api/useGetAccountBalanceSummaryQuery";
+import { useGetAccountsQuery } from "../api/useGetAccountsQuery";
+import Button from "../components/common/Button";
+import ModernCard from "../components/common/ModernCard";
+import AccountCreateUpdateModal from "../components/modals/AccountCreateUpdateModal";
 
 /**
  * Accounts page component displaying user's financial accounts
  * @returns {JSX.Element} The accounts page component
  */
 export default function AccountsPage() {
-  const [selectedAccount, setSelectedAccount] = useState(null);
+  const queryClient = useQueryClient();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState(null);
 
   // Fetch accounts data
   const { data: accountsData, isLoading: accountsLoading, error: accountsError } = useGetAccountsQuery();
@@ -22,7 +25,8 @@ export default function AccountsPage() {
   // Delete account mutation
   const deleteAccountMutation = useDeleteAccountMutation({
     onSuccess: () => {
-      console.log('Account deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["accountBalanceSummary"] });
     },
     onError: (error) => {
       console.error('Failed to delete account:', error);
@@ -67,8 +71,8 @@ export default function AccountsPage() {
 
   // Handle account actions
   const handleEditAccount = (account) => {
-    console.log('Edit account:', account);
-    // TODO: Open edit dialog
+    setEditingAccount(account);
+    setModalOpen(true);
   };
 
   const handleDeleteAccount = (account) => {
@@ -78,8 +82,18 @@ export default function AccountsPage() {
   };
 
   const handleAddAccount = () => {
-    console.log('Add new account');
-    // TODO: Open add account dialog
+    setEditingAccount(null);
+    setModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setEditingAccount(null);
+  };
+
+  const handleModalSuccess = (account) => {
+    queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    queryClient.invalidateQueries({ queryKey: ["accountBalanceSummary"] });
   };
 
   const handleTransferMoney = () => {
@@ -104,7 +118,7 @@ export default function AccountsPage() {
       </Box>
     );
   }
-  console.log({ accountsData, balanceSummary });
+
   const accounts = accountsData?.accounts || [];
   const summary = balanceSummary || {};
 
@@ -251,6 +265,16 @@ export default function AccountsPage() {
           </Grid>
         ))}
       </Grid>
+
+      {/* Account Create/Update Modal */}
+      {modalOpen && (
+        <AccountCreateUpdateModal
+          open={modalOpen}
+          onClose={handleModalClose}
+          account={editingAccount}
+          onSuccess={handleModalSuccess}
+        />
+      )}
     </Box>
   );
 }

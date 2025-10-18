@@ -8,7 +8,7 @@ import * as Yup from "yup";
 import { useSignupMutation } from "../api/useSignupMutation";
 import TextField from "../components/form/TextField";
 import { pageRoutes } from "../constants/pageRoutes";
-import { showToast } from "../redux/toastSlice";
+import { showToast } from "../redux/slices/toastSlice";
 
 export default function SignupPage() {
   const formikRef = useRef(null);
