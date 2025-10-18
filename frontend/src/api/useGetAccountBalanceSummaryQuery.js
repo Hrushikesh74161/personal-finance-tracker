@@ -6,7 +6,7 @@ import apiClient from "./apiClient.js";
  * @param {Object} options - Additional query options
  * @returns {UseQueryResult} Query result object containing data, loading state, and error
  */
-export function useGetAccountBalanceSummaryQuery(options = {}) {
+export function useGetAccountBalanceSummaryQuery(params) {
   return useQuery({
     queryKey: ["accountBalanceSummary"],
     queryFn: async () => {
@@ -16,6 +16,6 @@ export function useGetAccountBalanceSummaryQuery(options = {}) {
       });
       return response.data.data;
     },
-    ...options
+    ...params
   });
 }

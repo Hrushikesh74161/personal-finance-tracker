@@ -1,47 +1,45 @@
-import { Box, Grid, Chip, Avatar } from "@mui/material";
-import { Add, TrendingUp, TrendingDown, Receipt } from "@mui/icons-material";
-import PageHeader from "../../components/common/PageHeader";
+import { Add, Delete, Edit, Receipt, TrendingDown, TrendingUp } from "@mui/icons-material";
+import { Avatar, Box, Chip, Grid, IconButton, Tooltip, Typography } from "@mui/material";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useDeleteTransactionMutation } from "../../api/useDeleteTransactionMutation";
+import { useGetTransactionsQuery } from "../../api/useGetTransactionsQuery";
 import ModernCard from "../../components/common/ModernCard";
+import Button from "../../components/common/Button";
+import ConfirmationModal from "../../components/modals/CofirmationModal";
+import TransactionCreateUpdateModal from "../../components/modals/TransactionCreateUpdateModal";
 
+/**
+ * Transactions page component displaying user's financial transactions
+ * @returns {JSX.Element} The transactions page component
+ */
 export default function TransactionsPage() {
-  const transactions = [
-    {
-      id: 1,
-      description: "Grocery Store",
-      category: "Food & Dining",
-      amount: -85.50,
-      date: "2024-01-15",
-      type: "expense",
-      icon: "🛒",
+  const queryClient = useQueryClient();
+  const [transactionCreateUpdateModalOpen, setTransactionCreateUpdateModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [deleteTransactionModalOpen, setDeleteTransactionModalOpen] = useState(false);
+  const [deletingTransaction, setDeletingTransaction] = useState(null);
+  const [filterType, setFilterType] = useState('all'); // 'all', 'income', 'expense'
+
+  // Fetch transactions data with filter
+  const { data: transactionsData, isLoading: transactionsLoading, error: transactionsError } = useGetTransactionsQuery({
+    type: filterType === 'all' ? undefined : filterType,
+    limit: 50, // Get more transactions for better overview
+    sortBy: 'date',
+    sortOrder: 'desc'
+  });
+
+  // Delete transaction mutation
+  const deleteTransactionMutation = useDeleteTransactionMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["accountBalanceSummary"] });
     },
-    {
-      id: 2,
-      description: "Salary Deposit",
-      category: "Income",
-      amount: 3000.00,
-      date: "2024-01-14",
-      type: "income",
-      icon: "💰",
-    },
-    {
-      id: 3,
-      description: "Gas Station",
-      category: "Transportation",
-      amount: -45.20,
-      date: "2024-01-13",
-      type: "expense",
-      icon: "⛽",
-    },
-    {
-      id: 4,
-      description: "Coffee Shop",
-      category: "Food & Dining",
-      amount: -12.75,
-      date: "2024-01-12",
-      type: "expense",
-      icon: "☕",
-    },
-  ];
+    onError: (error) => {
+      console.error('Failed to delete transaction:', error);
+    }
+  });
 
   const getCategoryColor = (category) => {
     const colors = {
@@ -50,19 +48,188 @@ export default function TransactionsPage() {
       "Transportation": "#3b82f6",
       "Entertainment": "#8b5cf6",
       "Shopping": "#ef4444",
+      "Bills & Utilities": "#8b5cf6",
+      "Healthcare": "#ef4444",
+      "Education": "#3b82f6",
+      "Travel": "#10b981",
+      "Transfer": "#667eea",
+      "Other": "#6b7280",
     };
     return colors[category] || "#6b7280";
   };
 
+  // Get transaction icon based on category
+  const getTransactionIcon = (category) => {
+    const icons = {
+      "Food & Dining": "🍽️",
+      "Income": "💰",
+      "Transportation": "🚗",
+      "Entertainment": "🎬",
+      "Shopping": "🛍️",
+      "Bills & Utilities": "💡",
+      "Healthcare": "🏥",
+      "Education": "📚",
+      "Travel": "✈️",
+      "Transfer": "🔄",
+      "Other": "📝",
+    };
+    return icons[category] || "💳";
+  };
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  /* Transaction create/update modal handlers */
+  const handleEditTransaction = (transaction) => {
+    setEditingTransaction(transaction);
+    setTransactionCreateUpdateModalOpen(true);
+  };
+
+  const handleAddTransaction = () => {
+    setEditingTransaction(null);
+    setTransactionCreateUpdateModalOpen(true);
+  };
+
+  const handleTransactionCreateUpdateModalClose = () => {
+    setTransactionCreateUpdateModalOpen(false);
+    setEditingTransaction(null);
+  };
+
+  const handleTransactionCreateUpdateModalSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    queryClient.invalidateQueries({ queryKey: ["accountBalanceSummary"] });
+    handleTransactionCreateUpdateModalClose();
+  };
+
+  /* Delete transaction modal handlers */
+  const handleDeleteTransaction = (transaction) => {
+    setDeletingTransaction(transaction);
+    setDeleteTransactionModalOpen(true);
+  };
+
+  const handleDeleteTransactionModalClose = () => {
+    setDeleteTransactionModalOpen(false);
+    setDeletingTransaction(null);
+  };
+
+  const handleDeleteTransactionModalConfirm = () => {
+    deleteTransactionMutation.mutate(deletingTransaction._id);
+    setDeleteTransactionModalOpen(false);
+    setDeletingTransaction(null);
+  };
+
+  // Filter handlers
+  const handleFilterChange = (type) => {
+    setFilterType(type);
+  };
+
+  // Calculate summary data
+  const calculateSummary = () => {
+    if (!transactionsData?.transactions) {
+      return { totalIncome: 0, totalExpenses: 0, netBalance: 0 };
+    }
+
+    const transactions = transactionsData.transactions;
+    const totalIncome = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const totalExpenses = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    
+    const netBalance = totalIncome - totalExpenses;
+
+    return { totalIncome, totalExpenses, netBalance };
+  };
+
+  // Loading state
+  if (transactionsLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <Typography>Loading transactions...</Typography>
+      </Box>
+    );
+  }
+
+  // Error state
+  if (transactionsError) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <Typography color="error">Failed to load transactions</Typography>
+      </Box>
+    );
+  }
+
+  const transactions = transactionsData?.transactions || [];
+  const summary = calculateSummary();
+
   return (
     <Box>
-      <PageHeader 
-        title="Transactions" 
-        subtitle="Track your income and expenses"
-        action={() => console.log('Add transaction')}
-        actionIcon={<Add />}
-        actionText="Add Transaction"
-      />
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Box>
+            <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 400 }}>
+              View all your transactions
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              startIcon={<Add />}
+              onClick={handleAddTransaction}
+              sx={{
+                borderRadius: 3,
+                px: 3,
+                py: 1.5,
+              }}
+            >
+              Add transaction
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Filter buttons */}
+        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+          <Button
+            variant={filterType === 'all' ? 'contained' : 'outlined'}
+            onClick={() => handleFilterChange('all')}
+            size="small"
+          >
+            All
+          </Button>
+          <Button
+            variant={filterType === 'income' ? 'contained' : 'outlined'}
+            onClick={() => handleFilterChange('income')}
+            size="small"
+            sx={{ color: filterType === 'income' ? 'white' : '#10b981' }}
+          >
+            Income
+          </Button>
+          <Button
+            variant={filterType === 'expense' ? 'contained' : 'outlined'}
+            onClick={() => handleFilterChange('expense')}
+            size="small"
+            sx={{ color: filterType === 'expense' ? 'white' : '#ef4444' }}
+          >
+            Expenses
+          </Button>
+        </Box>
+      </Box>
 
       <Grid container spacing={3}>
         <Grid item xs={12} lg={8}>
@@ -73,76 +240,120 @@ export default function TransactionsPage() {
             color="#667eea"
           >
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {transactions.map((transaction) => (
-                <Box
-                  key={transaction.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    p: 2,
-                    borderRadius: 2,
-                    backgroundColor: 'rgba(0,0,0,0.02)',
-                    border: '1px solid rgba(0,0,0,0.05)',
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer',
-                    '&:hover': {
-                      backgroundColor: 'rgba(0,0,0,0.05)',
-                      transform: 'translateX(4px)',
+              {transactions.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No transactions found
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    {filterType === 'all' 
+                      ? 'Start by adding your first transaction' 
+                      : `No ${filterType} transactions found`
                     }
-                  }}
-                >
-                  <Avatar
+                  </Typography>
+                </Box>
+              ) : (
+                transactions.map((transaction) => (
+                  <Box
+                    key={transaction._id}
                     sx={{
-                      width: 40,
-                      height: 40,
-                      mr: 2,
-                      backgroundColor: 'rgba(0,0,0,0.05)',
-                      fontSize: '1.2rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      p: 2,
+                      borderRadius: 2,
+                      backgroundColor: 'rgba(0,0,0,0.02)',
+                      border: '1px solid rgba(0,0,0,0.05)',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0,0,0,0.05)',
+                        transform: 'translateX(4px)',
+                      }
                     }}
                   >
-                    {transaction.icon}
-                  </Avatar>
-                  
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Box sx={{ fontWeight: 600, mb: 0.5 }}>
-                      {transaction.description}
-                    </Box>
-                    <Chip
-                      label={transaction.category}
-                      size="small"
+                    <Avatar
                       sx={{
-                        backgroundColor: `${getCategoryColor(transaction.category)}20`,
-                        color: getCategoryColor(transaction.category),
-                        fontWeight: 500,
-                        fontSize: '0.75rem',
+                        width: 40,
+                        height: 40,
+                        mr: 2,
+                        backgroundColor: 'rgba(0,0,0,0.05)',
+                        fontSize: '1.2rem',
                       }}
-                    />
-                  </Box>
-                  
-                  <Box sx={{ textAlign: 'right', mr: 2 }}>
-                    <Box sx={{ 
-                      fontWeight: 700,
-                      color: transaction.type === 'income' ? '#10b981' : '#ef4444',
-                      mb: 0.5
-                    }}>
-                      {transaction.type === 'income' ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
+                    >
+                      {getTransactionIcon(transaction.category)}
+                    </Avatar>
+
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Box sx={{ fontWeight: 600, mb: 0.5 }}>
+                        {transaction.description}
+                      </Box>
+                      <Chip
+                        label={transaction.category}
+                        size="small"
+                        sx={{
+                          backgroundColor: `${getCategoryColor(transaction.category)}20`,
+                          color: getCategoryColor(transaction.category),
+                          fontWeight: 500,
+                          fontSize: '0.75rem',
+                        }}
+                      />
                     </Box>
-                    <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                      {transaction.date}
+
+                    <Box sx={{ textAlign: 'right', mr: 2 }}>
+                      <Box sx={{
+                        fontWeight: 700,
+                        color: transaction.type === 'income' ? '#10b981' : transaction.type === 'expense' ? '#ef4444' : '#667eea',
+                        mb: 0.5
+                      }}>
+                        {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}{formatCurrency(Math.abs(transaction.amount))}
+                      </Box>
+                      <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                        {formatDate(transaction.date)}
+                      </Box>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {transaction.type === 'income' ? (
+                        <TrendingUp sx={{ color: '#10b981' }} />
+                      ) : transaction.type === 'expense' ? (
+                        <TrendingDown sx={{ color: '#ef4444' }} />
+                      ) : (
+                        <TrendingUp sx={{ color: '#667eea' }} />
+                      )}
+                      
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <Tooltip title="Edit Transaction">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditTransaction(transaction)}
+                            sx={{
+                              color: 'text.secondary',
+                              '&:hover': { color: 'primary.main' }
+                            }}
+                          >
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete Transaction">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteTransaction(transaction)}
+                            sx={{
+                              color: 'text.secondary',
+                              '&:hover': { color: 'error.main' }
+                            }}
+                          >
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     </Box>
                   </Box>
-                  
-                  {transaction.type === 'income' ? (
-                    <TrendingUp sx={{ color: '#10b981' }} />
-                  ) : (
-                    <TrendingDown sx={{ color: '#ef4444' }} />
-                  )}
-                </Box>
-              ))}
+                ))
+              )}
             </Box>
           </ModernCard>
         </Grid>
-        
+
         <Grid item xs={12} lg={4}>
           <ModernCard
             title="Transaction Summary"
@@ -151,9 +362,9 @@ export default function TransactionsPage() {
             color="#10b981"
           >
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <Box sx={{ 
-                p: 2, 
-                borderRadius: 2, 
+              <Box sx={{
+                p: 2,
+                borderRadius: 2,
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
                 border: '1px solid rgba(16, 185, 129, 0.2)',
               }}>
@@ -161,13 +372,13 @@ export default function TransactionsPage() {
                   Total Income
                 </Box>
                 <Box sx={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981' }}>
-                  $3,000.00
+                  {formatCurrency(summary.totalIncome)}
                 </Box>
               </Box>
-              
-              <Box sx={{ 
-                p: 2, 
-                borderRadius: 2, 
+
+              <Box sx={{
+                p: 2,
+                borderRadius: 2,
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
                 border: '1px solid rgba(239, 68, 68, 0.2)',
               }}>
@@ -175,27 +386,61 @@ export default function TransactionsPage() {
                   Total Expenses
                 </Box>
                 <Box sx={{ fontSize: '1.5rem', fontWeight: 700, color: '#ef4444' }}>
-                  $143.45
+                  {formatCurrency(summary.totalExpenses)}
                 </Box>
               </Box>
-              
-              <Box sx={{ 
-                p: 2, 
-                borderRadius: 2, 
+
+              <Box sx={{
+                p: 2,
+                borderRadius: 2,
                 backgroundColor: 'rgba(102, 126, 234, 0.1)',
                 border: '1px solid rgba(102, 126, 234, 0.2)',
               }}>
                 <Box sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 1 }}>
                   Net Balance
                 </Box>
-                <Box sx={{ fontSize: '1.5rem', fontWeight: 700, color: '#667eea' }}>
-                  $2,856.55
+                <Box sx={{ 
+                  fontSize: '1.5rem', 
+                  fontWeight: 700, 
+                  color: summary.netBalance >= 0 ? '#10b981' : '#ef4444' 
+                }}>
+                  {formatCurrency(summary.netBalance)}
                 </Box>
               </Box>
             </Box>
           </ModernCard>
         </Grid>
       </Grid>
+
+      {/* Transaction Create/Update Modal */}
+      {transactionCreateUpdateModalOpen && (
+        <TransactionCreateUpdateModal
+          open={transactionCreateUpdateModalOpen}
+          onClose={handleTransactionCreateUpdateModalClose}
+          transaction={editingTransaction}
+          onSuccess={handleTransactionCreateUpdateModalSuccess}
+        />
+      )}
+
+      {/* Delete Transaction Modal */}
+      {deleteTransactionModalOpen && (
+        <ConfirmationModal
+          open={deleteTransactionModalOpen}
+          onClose={handleDeleteTransactionModalClose}
+          onConfirm={handleDeleteTransactionModalConfirm}
+          title="Delete Transaction"
+          message={`Are you sure you want to delete "${deletingTransaction?.description}"?`}
+          description="This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          confirmColor="error"
+          cancelColor="secondary"
+          confirmDisabled={deleteTransactionMutation.isPending}
+          cancelDisabled={deleteTransactionMutation.isPending}
+          showCancel={true}
+          size="small"
+        />
+      )}
     </Box>
   );
 }

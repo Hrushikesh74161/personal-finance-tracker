@@ -1,21 +1,20 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import apiClient from "./apiClient.js";
 
 /**
- * Custom hook for handling delete account mutation using React Query
- * @param {Object} params - The parameters for the delete account mutation
+ * Custom hook for handling create transaction mutation using React Query
+ * @param {Object} params - The parameters for the create transaction mutation
  * @param {Object} [params.onSuccess] - Optional callback function called on successful mutation
  * @param {Object} [params.onError] - Optional callback function called on mutation error
  * @returns {UseMutationResult} Mutation result object containing mutation state and functions
  */
-export function useDeleteAccountMutation(params) {
-  const queryClient = useQueryClient();
-  
+export function useCreateTransactionMutation(params = {}) {
   return useMutation({
-    mutationFn: async (accountId) => {
+    mutationFn: async (data) => {
       const response = await apiClient({
-        method: "delete",
-        url: `/accounts/${accountId}`,
+        method: "post",
+        url: "/transactions",
+        data: data,
       });
       return response.data.data;
     },

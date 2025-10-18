@@ -2,22 +2,22 @@ import { useQuery } from "@tanstack/react-query";
 import apiClient from "./apiClient.js";
 
 /**
- * Custom hook for fetching a single account by ID using React Query
- * @param {string} accountId - The account ID to fetch
+ * Custom hook for fetching a single transaction by ID using React Query
+ * @param {string} transactionId - The transaction ID to fetch
  * @param {Object} options - Additional query options
  * @returns {UseQueryResult} Query result object containing data, loading state, and error
  */
-export function useGetAccountByIdQuery(params) {
+export function useGetTransactionByIdQuery(params = {}) {
   return useQuery({
-    queryKey: ["account", params?.accountId],
+    queryKey: ["transaction", params?.transactionId],
     queryFn: async () => {
       const response = await apiClient({
         method: "get",
-        url: `/accounts/${params?.accountId}`,
+        url: `/transactions/${params?.transactionId}`,
       });
       return response.data.data;
     },
-    enabled: !!params?.accountId,
+    enabled: !!params?.transactionId,
     ...params
   });
 }

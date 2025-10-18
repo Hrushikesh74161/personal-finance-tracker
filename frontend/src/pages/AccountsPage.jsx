@@ -89,9 +89,9 @@ export default function AccountsPage() {
   };
 
   const handleAccountCreateUpdateModalSuccess = () => {
+    handleAccountCreateUpdateModalClose()
     queryClient.invalidateQueries({ queryKey: ["accounts"] });
     queryClient.invalidateQueries({ queryKey: ["accountBalanceSummary"] });
-    handleAccountCreateUpdateModalClose()
   };
 
   /* Delete account modal handlers */
@@ -109,6 +109,8 @@ export default function AccountsPage() {
     deleteAccountMutation.mutate(deletingAccount._id);
     setDeleteAccountModalOpen(false);
     setDeletingAccount(null);
+    queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    queryClient.invalidateQueries({ queryKey: ["accountBalanceSummary"] });
   };
 
   const handleTransferMoney = () => {
@@ -130,6 +132,7 @@ export default function AccountsPage() {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
         <Typography color="error">Failed to load accounts</Typography>
+        <Typography color="error">{JSON.stringify(accountsError?.message)}</Typography>
       </Box>
     );
   }
@@ -139,7 +142,7 @@ export default function AccountsPage() {
 
   return (
     <Box>
-      {/* Page Header - Only subtitle, no title */}
+      {/* Page Header */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
           <Box>
