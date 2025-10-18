@@ -208,31 +208,23 @@ export async function deleteAccount(accountId, userId) {
 export async function getAccountBalanceSummary(userId) {
   const accounts = await accountModel
     .find({ userId, deleted: false, isActive: true })
-    .select("name type balance")
+    .select("balance")
     .lean();
 
   const summary = {
-    totalBalance: 0,
-    byType: {},
-    accounts: accounts,
+    totalDebt: 0,
+    netWorth: 0,
+    totalAccounts: accounts.length,
   };
 
   accounts.forEach((account) => {
-    // Add to total balance
-    summary.totalBalance += account.balance;
-
-    // Group by type
-    if (!summary.byType[account.type]) {
-      summary.byType[account.type] = {
-        count: 0,
-        totalBalance: 0,
-        accounts: [],
-      };
-    }
-    summary.byType[account.type].count += 1;
-    summary.byType[account.type].totalBalance += account.balance;
-    summary.byType[account.type].accounts.push(account);
+    summary.totalDebt += account.balance < 0 ? account.balance : 0;
+    summary.netWorth += account.balance;
   });
 
-  return summary;
+  return {
+    totalDebt: summary.totalDebt,
+    netWorth: summary.netWorth,
+    totalAccounts: summary.totalAccounts,
+  };
 }

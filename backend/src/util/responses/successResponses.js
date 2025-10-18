@@ -7,7 +7,7 @@
  * @returns {Response}
  */
 export function response200({ res, data = {} }) {
-  return res.status(200).json({ status: true, data });
+  return res.status(200).json({ success: true, data });
 }
 
 /**
@@ -18,5 +18,5 @@ export function response200({ res, data = {} }) {
  * @returns {Response}
  */
 export function createdResponse({ res, data = {} }) {
-  return res.status(201).json({ status: true, data });
+  return res.status(201).json({ success: true, data });
 }

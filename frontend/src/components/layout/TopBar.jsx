@@ -53,8 +53,8 @@ export default function TopBar() {
       <Toolbar>
         {/* Page Title */}
         <Typography
-          variant="h6"
-          component="div"
+          variant="h4"
+          component="h1"
           sx={{
             flexGrow: 1,
             fontWeight: 700,

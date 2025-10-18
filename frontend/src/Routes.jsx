@@ -1,6 +1,6 @@
 import { Box, CircularProgress } from "@mui/material";
 import { lazy, Suspense } from "react";
-import { Outlet, useRoutes } from "react-router-dom";
+import { useRoutes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/layout/Layout";
 
@@ -8,7 +8,7 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
 const HomePage = lazy(() => import("./pages/HomePage"));
 const AccountsPage = lazy(() => import("./pages/AccountsPage"));
-const TransactionsPage = lazy(() => import("./pages/TransactionsPage"));
+const TransactionsPage = lazy(() => import("./pages/transactions/TransactionsPage"));
 const BudgetPage = lazy(() => import("./pages/BudgetPage"));
 const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
 const ReportsPage = lazy(() => import("./pages/ReportsPage"));

@@ -8,7 +8,7 @@
  * @returns {Response} Response object, allowing for method chaining.
  */
 export function badRequest({ res, error = { message: "Bad Request" } }) {
-  return res.status(400).json({ status: false, error });
+  return res.status(400).json({ success: false, error });
 }
 
 /**
@@ -24,7 +24,7 @@ export function unAuthorizedRequest({
   res,
   error = { message: "You are not authorized" },
 }) {
-  return res.status(401).json({ status: false, error });
+  return res.status(401).json({ success: false, error });
 }
 
 /**
@@ -40,7 +40,7 @@ export function forbiddenRequest({
   res,
   error = { message: "You are forbidden" },
 }) {
-  return res.status(403).json({ status: false, error });
+  return res.status(403).json({ success: false, error });
 }
 
 /**
@@ -56,7 +56,7 @@ export function notFoundResponse({
   res,
   error = { message: "Resource not found" },
 }) {
-  return res.status(404).json({ status: false, error });
+  return res.status(404).json({ success: false, error });
 }
 
 /**
@@ -72,5 +72,5 @@ export function tooManyRequests({
   res,
   error = { message: "Too many requests" },
 }) {
-  return res.status(429).json({ status: false, error });
+  return res.status(429).json({ success: false, error });
 }

@@ -1,7 +1,7 @@
 import { Box, Grid, Chip, Avatar } from "@mui/material";
 import { Add, TrendingUp, TrendingDown, Receipt } from "@mui/icons-material";
-import PageHeader from "../components/common/PageHeader";
-import ModernCard from "../components/common/ModernCard";
+import PageHeader from "../../components/common/PageHeader";
+import ModernCard from "../../components/common/ModernCard";
 
 export default function TransactionsPage() {
   const transactions = [

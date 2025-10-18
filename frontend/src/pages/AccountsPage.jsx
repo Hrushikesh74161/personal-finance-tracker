@@ -1,147 +1,185 @@
-import { Box, Grid } from "@mui/material";
-import { Add, AccountBalance, CreditCard, Savings } from "@mui/icons-material";
+import { Box, Grid, Typography, IconButton, Tooltip } from "@mui/material";
+import Button from "../components/common/Button";
+import { Add, AccountBalance, CreditCard, Savings, Edit, Delete, SwapHoriz } from "@mui/icons-material";
 import PageHeader from "../components/common/PageHeader";
 import ModernCard from "../components/common/ModernCard";
+import { useGetAccountsQuery } from "../api/useGetAccountsQuery";
+import { useGetAccountBalanceSummaryQuery } from "../api/useGetAccountBalanceSummaryQuery";
+import { useDeleteAccountMutation } from "../api/useDeleteAccountMutation";
+import { useState } from "react";
 
+/**
+ * Accounts page component displaying user's financial accounts
+ * @returns {JSX.Element} The accounts page component
+ */
 export default function AccountsPage() {
-  const accounts = [
-    {
-      name: "Checking Account",
-      type: "Bank Account",
-      balance: "$2,450.00",
-      icon: <AccountBalance />,
-      color: "#667eea",
-      lastTransaction: "2 hours ago",
+  const [selectedAccount, setSelectedAccount] = useState(null);
+
+  // Fetch accounts data
+  const { data: accountsData, isLoading: accountsLoading, error: accountsError } = useGetAccountsQuery();
+  const { data: balanceSummary, isLoading: summaryLoading } = useGetAccountBalanceSummaryQuery();
+
+  // Delete account mutation
+  const deleteAccountMutation = useDeleteAccountMutation({
+    onSuccess: () => {
+      console.log('Account deleted successfully');
     },
-    {
-      name: "Savings Account",
-      type: "Savings",
-      balance: "$8,750.00",
-      icon: <Savings />,
-      color: "#10b981",
-      lastTransaction: "1 day ago",
-    },
-    {
-      name: "Credit Card",
-      type: "Credit",
-      balance: "-$1,200.00",
-      icon: <CreditCard />,
-      color: "#ef4444",
-      lastTransaction: "3 hours ago",
-    },
-  ];
+    onError: (error) => {
+      console.error('Failed to delete account:', error);
+    }
+  });
+
+  // Get account icon based on type
+  const getAccountIcon = (type) => {
+    switch (type) {
+      case 'checking':
+        return <AccountBalance />;
+      case 'savings':
+        return <Savings />;
+      case 'creditCard':
+        return <CreditCard />;
+      default:
+        return <AccountBalance />;
+    }
+  };
+
+  // Get account color based on type
+  const getAccountColor = (type) => {
+    switch (type) {
+      case 'checking':
+        return '#667eea';
+      case 'savings':
+        return '#10b981';
+      case 'creditCard':
+        return '#ef4444';
+      default:
+        return '#667eea';
+    }
+  };
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+
+  // Handle account actions
+  const handleEditAccount = (account) => {
+    console.log('Edit account:', account);
+    // TODO: Open edit dialog
+  };
+
+  const handleDeleteAccount = (account) => {
+    if (window.confirm(`Are you sure you want to delete ${account.name}?`)) {
+      deleteAccountMutation.mutate(account._id);
+    }
+  };
+
+  const handleAddAccount = () => {
+    console.log('Add new account');
+    // TODO: Open add account dialog
+  };
+
+  const handleTransferMoney = () => {
+    console.log('Transfer money');
+    // TODO: Open transfer dialog
+  };
+
+  // Loading state
+  if (accountsLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <Typography>Loading accounts...</Typography>
+      </Box>
+    );
+  }
+
+  // Error state
+  if (accountsError) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <Typography color="error">Failed to load accounts</Typography>
+      </Box>
+    );
+  }
+  console.log({ accountsData, balanceSummary });
+  const accounts = accountsData?.accounts || [];
+  const summary = balanceSummary || {};
 
   return (
     <Box>
-      <PageHeader 
-        title="Accounts" 
-        subtitle="Manage your financial accounts"
-        action={() => console.log('Add account')}
-        actionIcon={<Add />}
-        actionText="Add Account"
-      />
-
-      <Grid container spacing={3}>
-        {accounts.map((account, index) => (
-          <Grid item xs={12} sm={6} md={4} key={index}>
-            <ModernCard
-              title={account.name}
-              subtitle={account.type}
-              icon={account.icon}
-              color={account.color}
-              onClick={() => console.log('View account', account.name)}
+      {/* Page Header - Only subtitle, no title */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Box>
+            <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 400 }}>
+              Manage your financial accounts
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              startIcon={<SwapHoriz />}
+              onClick={handleTransferMoney}
+              sx={{
+                borderRadius: 3,
+                px: 3,
+                py: 1.5,
+              }}
             >
-              <Box sx={{ mt: 2 }}>
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  mb: 2
-                }}>
-                  <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-                    Current Balance
-                  </Box>
-                  <Box sx={{ 
-                    fontSize: '0.75rem', 
-                    color: 'text.secondary',
-                    backgroundColor: 'rgba(0,0,0,0.05)',
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: 1
-                  }}>
-                    {account.lastTransaction}
-                  </Box>
-                </Box>
-                
-                <Box sx={{ 
-                  fontSize: '1.5rem', 
-                  fontWeight: 700, 
-                  color: account.color,
-                  mb: 2
-                }}>
-                  {account.balance}
-                </Box>
-                
-                <Box sx={{ 
-                  display: 'flex', 
-                  gap: 1,
-                  '& > *': {
-                    flex: 1,
-                    fontSize: '0.75rem',
-                    py: 0.5,
-                    borderRadius: 1,
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: 'rgba(0,0,0,0.05)'
-                    }
-                  }
-                }}>
-                  <Box sx={{ color: 'text.secondary' }}>View</Box>
-                  <Box sx={{ color: 'text.secondary' }}>Edit</Box>
-                  <Box sx={{ color: 'text.secondary' }}>History</Box>
-                </Box>
-              </Box>
-            </ModernCard>
-          </Grid>
-        ))}
-      </Grid>
+              Transfer Money
+            </Button>
+            <Button
+              startIcon={<Add />}
+              onClick={handleAddAccount}
+              sx={{
+                borderRadius: 3,
+                px: 3,
+                py: 1.5,
+              }}
+            >
+              Add Account
+            </Button>
+          </Box>
+        </Box>
+      </Box>
 
-      <Box sx={{ mt: 4 }}>
+      {/* Account Management Card - Moved to top */}
+      <Box sx={{ mb: 4 }}>
         <ModernCard
           title="Account Management"
           subtitle="Overview and insights"
           icon={<AccountBalance />}
           color="#667eea"
         >
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: 3,
             mt: 2
           }}>
             <Box sx={{ textAlign: 'center' }}>
               <Box sx={{ fontSize: '2rem', fontWeight: 700, color: '#10b981', mb: 1 }}>
-                {accounts.length}
+                {summary.totalAccounts || accounts.length}
               </Box>
               <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                 Total Accounts
               </Box>
             </Box>
-            
+
             <Box sx={{ textAlign: 'center' }}>
               <Box sx={{ fontSize: '2rem', fontWeight: 700, color: '#667eea', mb: 1 }}>
-                $10,000
+                {formatCurrency(summary.netWorth || 0)}
               </Box>
               <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                 Net Worth
               </Box>
             </Box>
-            
+
             <Box sx={{ textAlign: 'center' }}>
               <Box sx={{ fontSize: '2rem', fontWeight: 700, color: '#ef4444', mb: 1 }}>
-                $1,200
+                {formatCurrency(summary.totalDebt || 0)}
               </Box>
               <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                 Total Debt
@@ -150,6 +188,69 @@ export default function AccountsPage() {
           </Box>
         </ModernCard>
       </Box>
+
+      {/* Accounts Grid */}
+      <Grid container spacing={3}>
+        {accounts.map((account) => (
+          <Grid item xs={12} sm={6} md={4} key={account._id}>
+            <ModernCard
+              title={account.name}
+              subtitle={account.type}
+              icon={getAccountIcon(account.type)}
+              color={getAccountColor(account.type)}
+              sx={{ height: '100%' }} // Make all cards same height
+            >
+              <Box sx={{ mt: 2 }}>
+                <Box sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 2
+                }}>
+                  <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+                    Current Balance
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="Edit Account">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditAccount(account)}
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'primary.main' }
+                        }}
+                      >
+                        <Edit fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Account">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteAccount(account)}
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'error.main' }
+                        }}
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+
+                <Box sx={{
+                  fontSize: '1.5rem',
+                  fontWeight: 700,
+                  color: getAccountColor(account.type),
+                  mb: 2
+                }}>
+                  {formatCurrency(account.balance)}
+                </Box>
+              </Box>
+            </ModernCard>
+          </Grid>
+        ))}
+      </Grid>
     </Box>
   );
 }

@@ -104,7 +104,7 @@ export default function Sidebar({
           display: 'flex',
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'space-between',
-          minHeight: 64,
+          maxHeight: 64,
           background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
           borderBottom: '1px solid rgba(255,255,255,0.1)',
         }}
@@ -191,10 +191,10 @@ export default function Sidebar({
                       minHeight: 48,
                       justifyContent: 'center',
                       borderRadius: 2,
-                      backgroundColor: isActive ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                      background: isActive ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
                       color: isActive ? 'white' : 'text.primary',
                       '&:hover': {
-                        backgroundColor: isActive ? 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)' : 'rgba(102, 126, 234, 0.1)',
+                        background: isActive ? 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)' : 'rgba(102, 126, 234, 0.1)',
                         transform: 'translateX(4px)',
                       },
                       transition: 'all 0.2s ease-in-out',
@@ -215,10 +215,10 @@ export default function Sidebar({
                   onClick={() => handleNavigation(item.path)}
                   sx={{
                     borderRadius: 2,
-                    backgroundColor: isActive ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                    background: isActive ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
                     color: isActive ? 'white' : 'text.primary',
                     '&:hover': {
-                      backgroundColor: isActive ? 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)' : 'rgba(102, 126, 234, 0.1)',
+                      background: isActive ? 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)' : 'rgba(102, 126, 234, 0.1)',
                       transform: 'translateX(4px)',
                     },
                     transition: 'all 0.2s ease-in-out',

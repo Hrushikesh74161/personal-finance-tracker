@@ -1,4 +1,5 @@
-import { Box, Button, Container, Link, Paper, Stack, Typography } from "@mui/material";
+import { Box, Container, Link, Paper, Stack, Typography } from "@mui/material";
+import Button from "../components/common/Button";
 import { Formik } from 'formik';
 import { useRef } from "react";
 import { useDispatch } from "react-redux";
@@ -184,8 +185,6 @@ export default function SignupPage() {
 
                   <Button
                     type="submit"
-                    variant="contained"
-                    color="primary"
                     size="large"
                     fullWidth
                     sx={{ mt: 2 }}

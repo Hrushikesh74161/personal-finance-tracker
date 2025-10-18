@@ -1,4 +1,5 @@
-import { Box, Grid, Switch, FormControlLabel, Divider, Button, Avatar, Typography } from "@mui/material";
+import { Box, Grid, Switch, FormControlLabel, Divider, Avatar, Typography } from "@mui/material";
+import Button from "../components/common/Button";
 import { Person, Notifications, Security, Palette, Language, Help, Edit, Logout } from "@mui/icons-material";
 import PageHeader from "../components/common/PageHeader";
 import ModernCard from "../components/common/ModernCard";
@@ -73,7 +74,6 @@ export default function SettingsPage() {
               <Button 
                 variant="outlined" 
                 startIcon={<Edit />}
-                sx={{ borderRadius: 2, textTransform: 'none' }}
               >
                 Edit Profile
               </Button>
@@ -144,8 +144,6 @@ export default function SettingsPage() {
                 startIcon={<Help />}
                 fullWidth
                 sx={{ 
-                  borderRadius: 2, 
-                  textTransform: 'none',
                   justifyContent: 'flex-start',
                   py: 1.5,
                 }}
@@ -159,8 +157,6 @@ export default function SettingsPage() {
                 startIcon={<Security />}
                 fullWidth
                 sx={{ 
-                  borderRadius: 2, 
-                  textTransform: 'none',
                   justifyContent: 'flex-start',
                   py: 1.5,
                 }}
@@ -173,8 +169,6 @@ export default function SettingsPage() {
                 variant="outlined"
                 fullWidth
                 sx={{ 
-                  borderRadius: 2, 
-                  textTransform: 'none',
                   justifyContent: 'flex-start',
                   py: 1.5,
                 }}
@@ -188,8 +182,6 @@ export default function SettingsPage() {
                 startIcon={<Logout />}
                 fullWidth
                 sx={{ 
-                  borderRadius: 2, 
-                  textTransform: 'none',
                   justifyContent: 'flex-start',
                   py: 1.5,
                   color: '#ef4444',

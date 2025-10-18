@@ -9,5 +9,5 @@ export function serverErrorResponse({
   res,
   error = { message: "Internal server error" },
 }) {
-  return res.status(500).json({ status: false, error });
+  return res.status(500).json({ success: false, error });
 }

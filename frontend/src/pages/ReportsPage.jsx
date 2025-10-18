@@ -1,4 +1,5 @@
-import { Box, Grid, Button, Chip } from "@mui/material";
+import { Box, Grid, Chip } from "@mui/material";
+import Button from "../components/common/Button";
 import { Assessment, TrendingUp, PieChart, BarChart, Download, CalendarToday, FilterList } from "@mui/icons-material";
 import PageHeader from "../components/common/PageHeader";
 import ModernCard from "../components/common/ModernCard";
@@ -91,9 +92,6 @@ export default function ReportsPage() {
                   size="small"
                   fullWidth
                   sx={{
-                    borderRadius: 2,
-                    textTransform: 'none',
-                    fontWeight: 600,
                     borderColor: report.color,
                     color: report.color,
                     '&:hover': {
@@ -144,21 +142,17 @@ export default function ReportsPage() {
                 <Button
                   variant="outlined"
                   startIcon={<CalendarToday />}
-                  sx={{ borderRadius: 2, textTransform: 'none' }}
                 >
                   Date Range
                 </Button>
                 <Button
                   variant="outlined"
                   startIcon={<FilterList />}
-                  sx={{ borderRadius: 2, textTransform: 'none' }}
                 >
                   Filters
                 </Button>
                 <Button
-                  variant="contained"
                   startIcon={<Download />}
-                  sx={{ borderRadius: 2, textTransform: 'none' }}
                 >
                   Export PDF
                 </Button>
