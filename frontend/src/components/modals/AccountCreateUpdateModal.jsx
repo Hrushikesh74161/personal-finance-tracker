@@ -71,12 +71,12 @@ export default function AccountCreateUpdateModal({
   const createAccountMutation = useCreateAccountMutation({
     onSuccess: (data) => {
       dispatch(showToast({ message: "Account created successfully", type: "success" }));
-      onSuccess?.(data);
+      onSuccess?.();
       onClose();
     },
     onError: (error) => {
-      console.log({createAccountError: error});
-      dispatch(showToast({ message: "Failed to create account", type: "error" }));
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to create account. Please try again.";
+      dispatch(showToast({ message: errorMessage, type: "error" }));
     }
   });
 
@@ -84,11 +84,12 @@ export default function AccountCreateUpdateModal({
   const updateAccountMutation = useUpdateAccountMutation({
     onSuccess: (data) => {
       dispatch(showToast({ message: "Account updated successfully", type: "success" }));
-      onSuccess?.(data);
+      onSuccess?.();
       onClose();
     },
     onError: (error) => {
-      dispatch(showToast({ message: "Failed to update account", type: "error" }));
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to update account. Please try again.";
+      dispatch(showToast({ message: errorMessage, type: "error" }));
     }
   });
 

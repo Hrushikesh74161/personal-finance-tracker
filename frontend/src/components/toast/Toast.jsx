@@ -1,6 +1,7 @@
 import { CheckCircleOutline, WarningOutlined } from "@mui/icons-material";
 import { Typography } from "@mui/material";
 import { AnimatePresence, motion } from "framer-motion";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { hideToast } from "../../redux/slices/toastSlice";
 
@@ -10,9 +11,15 @@ export function Toast() {
   const message = useSelector((state) => state.toast.message);
   const messageType = useSelector((state) => state.toast.type);
 
-  setTimeout(function () {
-    dispatch(hideToast());
-  }, 5000);
+  useEffect(() => {
+    if (toastState) {
+      const timer = setTimeout(() => {
+        dispatch(hideToast());
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [toastState, dispatch]);
 
   return (
     <AnimatePresence>
@@ -41,7 +48,7 @@ export function Toast() {
               alignItems: "center",
               flexDirection: "row",
               gap: "10px",
-              backgroundColor: "var(--paper-color)",
+              // backgroundColor: "var(--paper-color)",
               boxShadow: "0px 0px 10px 0px rgba(0,0,0,0.1)",
               zIndex: 99999999999,
             }}

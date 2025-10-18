@@ -10,7 +10,7 @@ import apiClient from "./apiClient.js";
  */
 export function useUpdateAccountMutation(params) {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ accountId, updateData }) => {
       const response = await apiClient({
@@ -19,12 +19,6 @@ export function useUpdateAccountMutation(params) {
         data: updateData,
       });
       return response.data.data;
-    },
-    onSuccess: (data, variables) => {
-      // Invalidate and refetch accounts queries
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["account", variables.accountId] });
-      params?.onSuccess?.(data, variables);
     },
     ...params
   });

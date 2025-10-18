@@ -8,6 +8,7 @@ import { useGetAccountsQuery } from "../api/useGetAccountsQuery";
 import Button from "../components/common/Button";
 import ModernCard from "../components/common/ModernCard";
 import AccountCreateUpdateModal from "../components/modals/AccountCreateUpdateModal";
+import ConfirmationModal from "../components/modals/CofirmationModal";
 
 /**
  * Accounts page component displaying user's financial accounts
@@ -15,8 +16,10 @@ import AccountCreateUpdateModal from "../components/modals/AccountCreateUpdateMo
  */
 export default function AccountsPage() {
   const queryClient = useQueryClient();
-  const [modalOpen, setModalOpen] = useState(false);
+  const [accountCreateUpdateModalOpen, setAccountCreateUpdateModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
+  const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(null);
 
   // Fetch accounts data
   const { data: accountsData, isLoading: accountsLoading, error: accountsError } = useGetAccountsQuery();
@@ -69,31 +72,43 @@ export default function AccountsPage() {
     }).format(amount);
   };
 
-  // Handle account actions
+  /* Account create/update modal handlers */
   const handleEditAccount = (account) => {
     setEditingAccount(account);
-    setModalOpen(true);
-  };
-
-  const handleDeleteAccount = (account) => {
-    if (window.confirm(`Are you sure you want to delete ${account.name}?`)) {
-      deleteAccountMutation.mutate(account._id);
-    }
+    setAccountCreateUpdateModalOpen(true);
   };
 
   const handleAddAccount = () => {
     setEditingAccount(null);
-    setModalOpen(true);
+    setAccountCreateUpdateModalOpen(true);
   };
 
-  const handleModalClose = () => {
-    setModalOpen(false);
+  const handleAccountCreateUpdateModalClose = () => {
+    setAccountCreateUpdateModalOpen(false);
     setEditingAccount(null);
   };
 
-  const handleModalSuccess = (account) => {
+  const handleAccountCreateUpdateModalSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["accounts"] });
     queryClient.invalidateQueries({ queryKey: ["accountBalanceSummary"] });
+    handleAccountCreateUpdateModalClose()
+  };
+
+  /* Delete account modal handlers */
+  const handleDeleteAccount = (account) => {
+    setDeletingAccount(account);
+    setDeleteAccountModalOpen(true);
+  };
+
+  const handleDeleteAccountModalClose = () => {
+    setDeleteAccountModalOpen(false);
+    setDeletingAccount(null);
+  };
+
+  const handleDeleteAccountModalConfirm = () => {
+    deleteAccountMutation.mutate(deletingAccount._id);
+    setDeleteAccountModalOpen(false);
+    setDeletingAccount(null);
   };
 
   const handleTransferMoney = () => {
@@ -267,12 +282,32 @@ export default function AccountsPage() {
       </Grid>
 
       {/* Account Create/Update Modal */}
-      {modalOpen && (
+      {accountCreateUpdateModalOpen && (
         <AccountCreateUpdateModal
-          open={modalOpen}
-          onClose={handleModalClose}
+          open={accountCreateUpdateModalOpen}
+          onClose={handleAccountCreateUpdateModalClose}
           account={editingAccount}
-          onSuccess={handleModalSuccess}
+          onSuccess={handleAccountCreateUpdateModalSuccess}
+        />
+      )}
+
+      {/* Delete Account Modal */}
+      {deleteAccountModalOpen && (
+        <ConfirmationModal
+          open={deleteAccountModalOpen}
+          onClose={handleDeleteAccountModalClose}
+          onConfirm={handleDeleteAccountModalConfirm}
+          title="Delete Account"
+          message={`Are you sure you want to delete ${deletingAccount?.name}?`}
+          description="This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          confirmColor="error"
+          cancelColor="secondary"
+          confirmDisabled={deleteAccountMutation.isPending}
+          cancelDisabled={deleteAccountMutation.isPending}
+          showCancel={true}
+          size="small"
         />
       )}
     </Box>
