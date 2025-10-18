@@ -1,8 +1,11 @@
-import { Box } from "@mui/material";
-import { lazy } from "react";
+import { Box, CircularProgress } from "@mui/material";
+import { lazy, Suspense } from "react";
 import { Outlet, useRoutes } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
+
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
+const HomePage = lazy(() => import("./pages/HomePage"));
 
 export default function Routes() {
   const routes = useRoutes([{
@@ -10,12 +13,16 @@ export default function Routes() {
     element: <Outlet />,
     children: [
       {
+        path: "",
+        element: <ProtectedRoute><HomePage /></ProtectedRoute>,
+      },
+      {
         path: "login",
         element: <LoginPage />,
       },
       {
         path: "signup",
-        // element: <SignupPage />,
+        element: <SignupPage />,
       },
       {
         path: "transactions",
@@ -23,5 +30,23 @@ export default function Routes() {
       },
     ],
   }])
-  return <Box sx={{ width: "100%", height: "100%" }}>{routes}</Box>
+
+  return (
+    <Suspense
+      fallback={
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      }
+    >
+      {routes}
+    </Suspense>
+  );
 }

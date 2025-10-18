@@ -12,7 +12,7 @@ export function useSignupMutation(params) {
   return useMutation({
     mutationFn: async (data) => {
       const response = await apiClient({
-        method: "POST",
+        method: "post",
         url: "/auth/signup",
         data: data,
         auth: false,
