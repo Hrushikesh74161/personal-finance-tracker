@@ -32,7 +32,7 @@ Authorization: Bearer <your-jwt-token>
   description: String, // Transaction description
   date: Date, // Transaction date
   tags: [String], // Optional tags (max 10)
-  paymentMethod: String, // Payment method used
+  accountId: ObjectId, // Reference to Account
   deleted: Boolean, // Soft delete flag
   deletedAt: Date, // Soft delete timestamp
   createdAt: Date,
@@ -59,7 +59,7 @@ Authorization: Bearer <your-jwt-token>
   "description": "Lunch at restaurant",
   "date": "2024-01-15T12:30:00.000Z",
   "tags": ["lunch", "restaurant"],
-  "paymentMethod": "Credit Card",
+  "accountId": "65a1b2c3d4e5f6789012347"
 }
 ```
 
@@ -70,8 +70,7 @@ Authorization: Bearer <your-jwt-token>
 - `description`: Required, 1-500 characters
 - `date`: Optional, must be valid ISO 8601 date format
 - `tags`: Optional array, max 10 tags, each 1-50 characters
-- `relatedTransactionId`: Optional, must be valid MongoDB ObjectId
-- `paymentMethod`: Optional, max 100 characters
+- `accountId`: Required, must be valid MongoDB ObjectId
 
 **Response:**
 ```json
@@ -91,7 +90,12 @@ Authorization: Bearer <your-jwt-token>
     "description": "Lunch at restaurant",
     "date": "2024-01-15T12:30:00.000Z",
     "tags": ["lunch", "restaurant"],
-    "paymentMethod": "Credit Card",
+    "accountId": {
+      "_id": "65a1b2c3d4e5f6789012347",
+      "name": "Checking Account",
+      "type": "checking",
+      "balance": 1500.00
+    },
     "createdAt": "2024-01-15T10:00:00.000Z",
     "updatedAt": "2024-01-15T10:00:00.000Z"
   }
@@ -111,6 +115,7 @@ Authorization: Bearer <your-jwt-token>
 - `limit` (optional): Items per page (default: 10, min: 1, max: 100)
 - `type` (optional): Filter by transaction type
 - `category` (optional): Filter by category (case-insensitive partial match)
+- `accountId` (optional): Filter by account ID
 - `startDate` (optional): Filter transactions from this date (ISO 8601)
 - `endDate` (optional): Filter transactions until this date (ISO 8601)
 - `minAmount` (optional): Minimum amount filter
@@ -120,7 +125,7 @@ Authorization: Bearer <your-jwt-token>
 
 **Example Request:**
 ```
-GET /api/transactions?page=1&limit=20&type=expense&startDate=2024-01-01&endDate=2024-01-31&sortBy=date&sortOrder=desc
+GET /api/transactions?page=1&limit=20&type=expense&accountId=65a1b2c3d4e5f6789012347&startDate=2024-01-01&endDate=2024-01-31&sortBy=date&sortOrder=desc
 ```
 
 **Response:**
@@ -143,7 +148,12 @@ GET /api/transactions?page=1&limit=20&type=expense&startDate=2024-01-01&endDate=
         "description": "Lunch at restaurant",
         "date": "2024-01-15T12:30:00.000Z",
         "tags": ["lunch", "restaurant"],
-        "paymentMethod": "Credit Card",
+        "accountId": {
+          "_id": "65a1b2c3d4e5f6789012347",
+          "name": "Checking Account",
+          "type": "checking",
+          "balance": 1500.00
+        },
         "createdAt": "2024-01-15T10:00:00.000Z",
         "updatedAt": "2024-01-15T10:00:00.000Z"
       }
@@ -189,7 +199,12 @@ GET /api/transactions?page=1&limit=20&type=expense&startDate=2024-01-01&endDate=
     "description": "Lunch at restaurant",
     "date": "2024-01-15T12:30:00.000Z",
     "tags": ["lunch", "restaurant"],
-    "paymentMethod": "Credit Card",
+    "accountId": {
+      "_id": "65a1b2c3d4e5f6789012347",
+      "name": "Checking Account",
+      "type": "checking",
+      "balance": 1500.00
+    },
     "createdAt": "2024-01-15T10:00:00.000Z",
     "updatedAt": "2024-01-15T10:00:00.000Z"
   }
@@ -216,8 +231,7 @@ GET /api/transactions?page=1&limit=20&type=expense&startDate=2024-01-01&endDate=
   "description": "Updated lunch description",
   "date": "2024-01-15T12:30:00.000Z",
   "tags": ["lunch", "restaurant", "updated"],
-  "paymentMethod": "Debit Card",
-  "location": "Updated Location"
+  "accountId": "65a1b2c3d4e5f6789012347"
 }
 ```
 
@@ -239,8 +253,12 @@ GET /api/transactions?page=1&limit=20&type=expense&startDate=2024-01-01&endDate=
     "description": "Updated lunch description",
     "date": "2024-01-15T12:30:00.000Z",
     "tags": ["lunch", "restaurant", "updated"],
-    "paymentMethod": "Debit Card",
-    "location": "Updated Location",
+    "accountId": {
+      "_id": "65a1b2c3d4e5f6789012347",
+      "name": "Checking Account",
+      "type": "checking",
+      "balance": 1500.00
+    },
     "createdAt": "2024-01-15T10:00:00.000Z",
     "updatedAt": "2024-01-15T11:00:00.000Z"
   }

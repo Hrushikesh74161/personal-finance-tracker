@@ -10,9 +10,7 @@ import { transactionModel } from "../models/transactionModel.js";
  * @param {string} transactionData.description - Transaction description
  * @param {Date} transactionData.date - Transaction date
  * @param {Array} transactionData.tags - Transaction tags
- * @param {string} transactionData.relatedTransactionId - Related transaction ID
- * @param {string} transactionData.paymentMethod - Payment method
- * @param {string} transactionData.location - Transaction location
+ * @param {string} transactionData.accountId - Account ID
  * @returns {Promise<Object>} Created transaction data
  */
 export async function createTransaction(transactionData) {
@@ -24,9 +22,7 @@ export async function createTransaction(transactionData) {
     description,
     date,
     tags,
-    relatedTransactionId,
-    paymentMethod,
-    location,
+    accountId,
   } = transactionData;
 
   // Create new transaction
@@ -38,16 +34,20 @@ export async function createTransaction(transactionData) {
     description,
     date: date || new Date(),
     tags: tags || [],
-    relatedTransactionId,
-    paymentMethod,
-    location,
+    accountId,
   });
 
   const savedTransaction = await newTransaction.save();
-  await savedTransaction.populate({
-    path: "userId",
-    select: "firstName lastName email",
-  });
+  await savedTransaction.populate([
+    {
+      path: "userId",
+      select: "firstName lastName email",
+    },
+    {
+      path: "accountId",
+      select: "name type balance",
+    },
+  ]);
 
   return savedTransaction;
 }
@@ -61,10 +61,16 @@ export async function createTransaction(transactionData) {
 export async function getTransactionById(transactionId, userId) {
   const transaction = await transactionModel
     .findOne({ _id: transactionId, userId, deleted: false })
-    .populate({
-      path: "userId",
-      select: "firstName lastName email",
-    })
+    .populate([
+      {
+        path: "userId",
+        select: "firstName lastName email",
+      },
+      {
+        path: "accountId",
+        select: "name type balance",
+      },
+    ])
     .lean();
 
   if (!transaction) {
@@ -80,6 +86,7 @@ export async function getTransactionById(transactionId, userId) {
  * @param {Object} filters - Filter options
  * @param {string} filters.type - Transaction type filter
  * @param {string} filters.category - Category filter
+ * @param {string} filters.accountId - Account ID filter
  * @param {Date} filters.startDate - Start date filter
  * @param {Date} filters.endDate - End date filter
  * @param {number} filters.minAmount - Minimum amount filter
@@ -94,6 +101,7 @@ export async function getTransactions(userId, filters = {}) {
   const {
     type,
     category,
+    accountId,
     startDate,
     endDate,
     minAmount,
@@ -113,6 +121,10 @@ export async function getTransactions(userId, filters = {}) {
 
   if (category) {
     query.category = { $regex: category, $options: "i" };
+  }
+
+  if (accountId) {
+    query.accountId = accountId;
   }
 
   if (startDate || endDate) {
@@ -146,10 +158,16 @@ export async function getTransactions(userId, filters = {}) {
   const [transactions, totalCount] = await Promise.all([
     transactionModel
       .find(query)
-      .populate({
-        path: "userId",
-        select: "firstName lastName email",
-      })
+      .populate([
+        {
+          path: "userId",
+          select: "firstName lastName email",
+        },
+        {
+          path: "accountId",
+          select: "name type balance",
+        },
+      ])
       .sort(sort)
       .skip(skip)
       .limit(limit)
@@ -191,10 +209,16 @@ export async function updateTransaction(transactionId, userId, updateData) {
 
   // Update transaction fields
   console.log({ updateData });
-  const updatedTransaction = await transactionModel.findByIdAndUpdate(transactionId, updateData, { new: true }).populate({
-    path: "userId",
-    select: "firstName lastName email",
-  }).lean();
+  const updatedTransaction = await transactionModel.findByIdAndUpdate(transactionId, updateData, { new: true }).populate([
+    {
+      path: "userId",
+      select: "firstName lastName email",
+    },
+    {
+      path: "accountId",
+      select: "name type balance",
+    },
+  ]).lean();
 
   return updatedTransaction;
 }

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
-import { transactionModelName } from "../constants/modelNames.js";
+import { accountModelName, transactionModelName } from "../constants/modelNames.js";
+import transactionTypes from "../constants/transactionTypes.js";
 
 const transactionSchema = new mongoose.Schema(
   {
@@ -11,7 +12,7 @@ const transactionSchema = new mongoose.Schema(
     type: {
       type: String,
       required: true,
-      enum: ["expense", "income", "transfer", "adjustment"],
+      enum: Object.values(transactionTypes),
     },
     category: {
       type: String,
@@ -38,10 +39,10 @@ const transactionSchema = new mongoose.Schema(
       type: String,
       trim: true,
     }],
-    // For tracking payment method or account
-    paymentMethod: {
-      type: String,
-      trim: true,
+    accountId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: accountModelName,
+      required: true,
     },
     // Soft delete fields
     deleted: {

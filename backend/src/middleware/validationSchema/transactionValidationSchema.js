@@ -1,4 +1,5 @@
 import { body, param, query } from "express-validator";
+import transactionTypes from "../../constants/transactionTypes.js";
 
 /**
  * Validation schema for creating a transaction
@@ -9,8 +10,8 @@ export const createTransactionValidationSchema = [
     .trim()
     .notEmpty()
     .withMessage("Transaction type is required")
-    .isIn(["expense", "income", "transfer", "adjustment"])
-    .withMessage("Transaction type must be one of: expense, income, transfer, adjustment"),
+    .isIn(Object.values(transactionTypes))
+    .withMessage(`Transaction type must be one of: ${Object.values(transactionTypes).join(", ")}`),
 
   body("category")
     .trim()
@@ -55,11 +56,12 @@ export const createTransactionValidationSchema = [
     .isLength({ min: 1, max: 50 })
     .withMessage("Each tag must be between 1 and 50 characters"),
 
-  body("paymentMethod")
-    .optional()
+  body("accountId")
     .trim()
-    .isLength({ max: 100 })
-    .withMessage("Payment method must not exceed 100 characters"),
+    .notEmpty()
+    .withMessage("Account ID is required")
+    .isMongoId()
+    .withMessage("Account ID must be a valid MongoDB ObjectId"),
 
 ];
 
@@ -75,8 +77,8 @@ export const updateTransactionValidationSchema = [
   body("type")
     .optional()
     .trim()
-    .isIn(["expense", "income", "transfer", "adjustment"])
-    .withMessage("Transaction type must be one of: expense, income, transfer, adjustment"),
+    .isIn(Object.values(transactionTypes))
+    .withMessage(`Transaction type must be one of: ${Object.values(transactionTypes).join(", ")}`),
 
   body("category")
     .optional()
@@ -120,11 +122,11 @@ export const updateTransactionValidationSchema = [
     .isLength({ min: 1, max: 50 })
     .withMessage("Each tag must be between 1 and 50 characters"),
 
-  body("paymentMethod")
+  body("accountId")
     .optional()
     .trim()
-    .isLength({ max: 100 })
-    .withMessage("Payment method must not exceed 100 characters"),
+    .isMongoId()
+    .withMessage("Account ID must be a valid MongoDB ObjectId"),
 
 ];
 
@@ -168,14 +170,20 @@ export const getTransactionsValidationSchema = [
   query("type")
     .optional()
     .trim()
-    .isIn(["expense", "income", "transfer", "adjustment"])
-    .withMessage("Type filter must be one of: expense, income, transfer, adjustment"),
+    .isIn(Object.values(transactionTypes))
+    .withMessage(`Type filter must be one of: ${Object.values(transactionTypes).join(", ")}`),
 
   query("category")
     .optional()
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage("Category filter must be between 1 and 100 characters"),
+
+  query("accountId")
+    .optional()
+    .trim()
+    .isMongoId()
+    .withMessage("Account ID filter must be a valid MongoDB ObjectId"),
 
   query("startDate")
     .optional()
