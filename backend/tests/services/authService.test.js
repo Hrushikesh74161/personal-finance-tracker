@@ -1,24 +1,38 @@
-import { jest } from '@jest/globals';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { signup, login } from '../../src/services/authService.js';
-import { userModel } from '../../src/models/userModel.js';
+import { jest } from "@jest/globals";
 
-// Mock bcryptjs
-jest.mock('bcryptjs');
+// bcrypt mock
+jest.unstable_mockModule('bcryptjs', () => ({
+  default: {
+    hash: jest.fn(),
+    compare: jest.fn(),
+  },
+  __esModule: true,
+}))
 
-// Mock jsonwebtoken
-jest.mock('jsonwebtoken');
+// jsonwebtoken mock
+jest.unstable_mockModule('jsonwebtoken', () => ({
+  default: {
+    sign: jest.fn(),
+  },
+  __esModule: true,
+}))
 
-// Mock userModel
-jest.mock('../../src/models/userModel.js', () => ({
-  userModel: {
-    findOne: jest.fn(),
-    prototype: {
-      save: jest.fn()
-    }
-  }
-}));
+// userModel mock
+jest.unstable_mockModule('../src/models/userModel.js', () => {
+  const mockUserModel = jest.fn();
+  mockUserModel.findOne = jest.fn();
+
+  return {
+    userModel: mockUserModel,
+    __esModule: true,
+  };
+});
+
+const bcrypt = await import('bcryptjs');
+const jwt = await import('jsonwebtoken');
+const { userModel } = await import('../../src/models/userModel.js');
+const { login, signup } = await import('../../src/services/authService.js');
+
 
 describe('AuthService', () => {
   const originalEnv = process.env;
@@ -50,17 +64,17 @@ describe('AuthService', () => {
       updatedAt: new Date('2023-01-01')
     };
 
-    test('should successfully create a new user', async () => {
+    it('should successfully create a new user', async () => {
       // Arrange
       userModel.findOne.mockResolvedValue(null);
-      bcrypt.hash.mockResolvedValue('hashedPassword123');
-      
+      bcrypt.default.hash.mockResolvedValue('hashedPassword123');
+
       const mockNewUser = {
         ...mockUserData,
         password: 'hashedPassword123',
         save: jest.fn().mockResolvedValue(mockSavedUser)
       };
-      
+
       // Mock the constructor
       const UserConstructor = jest.fn().mockImplementation(() => mockNewUser);
       userModel.mockImplementation(UserConstructor);
@@ -73,7 +87,7 @@ describe('AuthService', () => {
         email: 'john.doe@example.com',
         deleted: false
       });
-      expect(bcrypt.hash).toHaveBeenCalledWith('password123', 12);
+      expect(bcrypt.default.hash).toHaveBeenCalledWith('password123', 12);
       expect(UserConstructor).toHaveBeenCalledWith({
         firstName: 'John',
         lastName: 'Doe',
@@ -81,7 +95,7 @@ describe('AuthService', () => {
         password: 'hashedPassword123'
       });
       expect(mockNewUser.save).toHaveBeenCalled();
-      
+
       expect(result).toEqual({
         id: 'user123',
         firstName: 'John',
@@ -92,7 +106,7 @@ describe('AuthService', () => {
       });
     });
 
-    test('should throw error when user already exists', async () => {
+    it('should throw error when user already exists', async () => {
       // Arrange
       const existingUser = { _id: 'existing123', email: 'john.doe@example.com' };
       userModel.findOne.mockResolvedValue(existingUser);
@@ -103,29 +117,29 @@ describe('AuthService', () => {
         email: 'john.doe@example.com',
         deleted: false
       });
-      expect(bcrypt.hash).not.toHaveBeenCalled();
+      expect(bcrypt.default.hash).not.toHaveBeenCalled();
     });
 
-    test('should handle bcrypt hash error', async () => {
+    it('should handle bcrypt hash error', async () => {
       // Arrange
       userModel.findOne.mockResolvedValue(null);
-      bcrypt.hash.mockRejectedValue(new Error('Hash error'));
+      bcrypt.default.hash.mockRejectedValue(new Error('Hash error'));
 
       // Act & Assert
       await expect(signup(mockUserData)).rejects.toThrow('Hash error');
     });
 
-    test('should handle user save error', async () => {
+    it('should handle user save error', async () => {
       // Arrange
       userModel.findOne.mockResolvedValue(null);
-      bcrypt.hash.mockResolvedValue('hashedPassword123');
-      
+      bcrypt.default.hash.mockResolvedValue('hashedPassword123');
+
       const mockNewUser = {
         ...mockUserData,
         password: 'hashedPassword123',
         save: jest.fn().mockRejectedValue(new Error('Save error'))
       };
-      
+
       const UserConstructor = jest.fn().mockImplementation(() => mockNewUser);
       userModel.mockImplementation(UserConstructor);
 
@@ -150,13 +164,13 @@ describe('AuthService', () => {
       updatedAt: new Date('2023-01-01')
     };
 
-    test('should successfully login with valid credentials', async () => {
+    it('should successfully login with valid credentials', async () => {
       // Arrange
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(mockUser)
       });
-      bcrypt.compare.mockResolvedValue(true);
-      jwt.sign.mockReturnValue('jwt-token-123');
+      bcrypt.default.compare.mockResolvedValue(true);
+      jwt.default.sign.mockReturnValue('jwt-token-123');
 
       // Act
       const result = await login(mockLoginData);
@@ -166,8 +180,8 @@ describe('AuthService', () => {
         email: 'john.doe@example.com',
         deleted: false
       });
-      expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashedPassword123');
-      expect(jwt.sign).toHaveBeenCalledWith(
+      expect(bcrypt.default.compare).toHaveBeenCalledWith('password123', 'hashedPassword123');
+      expect(jwt.default.sign).toHaveBeenCalledWith(
         {
           userId: 'user123',
           email: 'john.doe@example.com'
@@ -189,7 +203,7 @@ describe('AuthService', () => {
       });
     });
 
-    test('should throw error when user not found', async () => {
+    it('should throw error when user not found', async () => {
       // Arrange
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(null)
@@ -201,36 +215,36 @@ describe('AuthService', () => {
         email: 'john.doe@example.com',
         deleted: false
       });
-      expect(bcrypt.compare).not.toHaveBeenCalled();
+      expect(bcrypt.default.compare).not.toHaveBeenCalled();
     });
 
-    test('should throw error when password is invalid', async () => {
+    it('should throw error when password is invalid', async () => {
       // Arrange
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(mockUser)
       });
-      bcrypt.compare.mockResolvedValue(false);
+      bcrypt.default.compare.mockResolvedValue(false);
 
       // Act & Assert
       await expect(login(mockLoginData)).rejects.toThrow('Invalid email or password');
-      expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashedPassword123');
-      expect(jwt.sign).not.toHaveBeenCalled();
+      expect(bcrypt.default.compare).toHaveBeenCalledWith('password123', 'hashedPassword123');
+      expect(jwt.default.sign).not.toHaveBeenCalled();
     });
 
-    test('should use default JWT secret when environment variable is not set', async () => {
+    it('should use default JWT secret when environment variable is not set', async () => {
       // Arrange
       delete process.env.JWT_SECRET_KEY;
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(mockUser)
       });
-      bcrypt.compare.mockResolvedValue(true);
-      jwt.sign.mockReturnValue('jwt-token-123');
+      bcrypt.default.compare.mockResolvedValue(true);
+      jwt.default.sign.mockReturnValue('jwt-token-123');
 
       // Act
       await login(mockLoginData);
 
       // Assert
-      expect(jwt.sign).toHaveBeenCalledWith(
+      expect(jwt.default.sign).toHaveBeenCalledWith(
         {
           userId: 'user123',
           email: 'john.doe@example.com'
@@ -240,24 +254,24 @@ describe('AuthService', () => {
       );
     });
 
-    test('should handle bcrypt compare error', async () => {
+    it('should handle bcrypt compare error', async () => {
       // Arrange
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(mockUser)
       });
-      bcrypt.compare.mockRejectedValue(new Error('Compare error'));
+      bcrypt.default.compare.mockRejectedValue(new Error('Compare error'));
 
       // Act & Assert
       await expect(login(mockLoginData)).rejects.toThrow('Compare error');
     });
 
-    test('should handle jwt sign error', async () => {
+    it('should handle jwt sign error', async () => {
       // Arrange
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(mockUser)
       });
-      bcrypt.compare.mockResolvedValue(true);
-      jwt.sign.mockImplementation(() => {
+      bcrypt.default.compare.mockResolvedValue(true);
+      jwt.default.sign.mockImplementation(() => {
         throw new Error('JWT sign error');
       });
 
@@ -265,7 +279,7 @@ describe('AuthService', () => {
       await expect(login(mockLoginData)).rejects.toThrow('JWT sign error');
     });
 
-    test('should handle database query error', async () => {
+    it('should handle database query error', async () => {
       // Arrange
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockRejectedValue(new Error('Database error'))
