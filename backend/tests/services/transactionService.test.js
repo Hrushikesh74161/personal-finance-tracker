@@ -1,26 +1,28 @@
-import { jest } from '@jest/globals';
-import {
+import { jest, test } from '@jest/globals';
+
+// Mock transactionModel
+jest.unstable_mockModule('../src/models/transactionModel.js', () => {
+  const mockTransactionModel = jest.fn();
+  mockTransactionModel.findOne = jest.fn();
+  mockTransactionModel.find = jest.fn();
+  mockTransactionModel.countDocuments = jest.fn();
+  mockTransactionModel.findByIdAndUpdate = jest.fn();
+
+  return {
+    transactionModel: mockTransactionModel,
+    __esModule: true
+  }
+});
+
+const { transactionModel } = await import('../../src/models/transactionModel.js');
+const {
   createTransaction,
   getTransactionById,
   getTransactions,
   updateTransaction,
   deleteTransaction
-} from '../../src/services/transactionService.js';
-import { transactionModel } from '../../src/models/transactionModel.js';
+} = await import('../../src/services/transactionService.js');
 
-// Mock transactionModel
-jest.mock('../../src/models/transactionModel.js', () => ({
-  transactionModel: {
-    findOne: jest.fn(),
-    find: jest.fn(),
-    countDocuments: jest.fn(),
-    findByIdAndUpdate: jest.fn(),
-    prototype: {
-      save: jest.fn(),
-      populate: jest.fn()
-    }
-  }
-}));
 
 describe('TransactionService', () => {
   beforeEach(() => {
@@ -47,16 +49,16 @@ describe('TransactionService', () => {
       populate: jest.fn()
     };
 
-    test('should successfully create a new transaction', async () => {
+    it('should successfully create a new transaction', async () => {
       // Arrange
       const mockNewTransaction = {
         ...mockTransactionData,
         save: jest.fn().mockResolvedValue(mockSavedTransaction)
       };
-      
+
       const TransactionConstructor = jest.fn().mockImplementation(() => mockNewTransaction);
       transactionModel.mockImplementation(TransactionConstructor);
-      
+
       mockSavedTransaction.populate.mockResolvedValue(mockSavedTransaction);
 
       // Act
@@ -74,14 +76,23 @@ describe('TransactionService', () => {
         accountId: 'account123'
       });
       expect(mockNewTransaction.save).toHaveBeenCalled();
-      expect(mockSavedTransaction.populate).toHaveBeenCalledWith({
+      expect(mockSavedTransaction.populate).toHaveBeenCalledWith([{
         path: 'userId',
         select: 'firstName lastName email'
-      });
+      },
+      {
+        path: "accountId",
+        select: "name type balance",
+      },
+      {
+        path: "categoryId",
+        select: "name description color icon",
+      },
+      ]);
       expect(result).toBe(mockSavedTransaction);
     });
 
-    test('should create transaction with default values when optional fields are not provided', async () => {
+    it('should create transaction with default values when optional fields are not provided', async () => {
       // Arrange
       const minimalTransactionData = {
         userId: 'user123',
@@ -96,10 +107,10 @@ describe('TransactionService', () => {
         ...minimalTransactionData,
         save: jest.fn().mockResolvedValue(mockSavedTransaction)
       };
-      
+
       const TransactionConstructor = jest.fn().mockImplementation(() => mockNewTransaction);
       transactionModel.mockImplementation(TransactionConstructor);
-      
+
       mockSavedTransaction.populate.mockResolvedValue(mockSavedTransaction);
 
       // Act
@@ -118,13 +129,13 @@ describe('TransactionService', () => {
       });
     });
 
-    test('should handle transaction save error', async () => {
+    it('should handle transaction save error', async () => {
       // Arrange
       const mockNewTransaction = {
         ...mockTransactionData,
         save: jest.fn().mockRejectedValue(new Error('Save error'))
       };
-      
+
       const TransactionConstructor = jest.fn().mockImplementation(() => mockNewTransaction);
       transactionModel.mockImplementation(TransactionConstructor);
 
@@ -146,17 +157,16 @@ describe('TransactionService', () => {
       accountId: 'account123'
     };
 
-    test('should successfully get transaction by ID', async () => {
+    it('should successfully get transaction by ID', async () => {
       // Arrange
-      const mockQuery = {
-        findOne: jest.fn().mockReturnValue({
-          populate: jest.fn().mockReturnValue({
-            lean: jest.fn().mockResolvedValue(mockTransaction)
-          })
+      const mockReturnValue = {
+        ...mockTransaction,
+        populate: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(mockTransaction)
         })
       };
-      
-      transactionModel.findOne.mockReturnValue(mockQuery);
+
+      transactionModel.findOne.mockReturnValue(mockReturnValue);
 
       // Act
       const result = await getTransactionById('transaction123', 'user123');
@@ -170,17 +180,15 @@ describe('TransactionService', () => {
       expect(result).toBe(mockTransaction);
     });
 
-    test('should throw error when transaction not found', async () => {
+    it('should throw error when transaction not found', async () => {
       // Arrange
-      const mockQuery = {
-        findOne: jest.fn().mockReturnValue({
-          populate: jest.fn().mockReturnValue({
-            lean: jest.fn().mockResolvedValue(null)
-          })
+      const mockValue = {
+        populate: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(null)
         })
       };
-      
-      transactionModel.findOne.mockReturnValue(mockQuery);
+
+      transactionModel.findOne.mockReturnValue(mockValue);
 
       // Act & Assert
       await expect(getTransactionById('nonexistent', 'user123')).rejects.toThrow('Transaction not found');
@@ -211,22 +219,20 @@ describe('TransactionService', () => {
       }
     ];
 
-    test('should get transactions with default pagination', async () => {
+    it('should get transactions with default pagination', async () => {
       // Arrange
       const mockQuery = {
-        find: jest.fn().mockReturnValue({
-          populate: jest.fn().mockReturnValue({
-            sort: jest.fn().mockReturnValue({
-              skip: jest.fn().mockReturnValue({
-                limit: jest.fn().mockReturnValue({
-                  lean: jest.fn().mockResolvedValue(mockTransactions)
-                })
+        populate: jest.fn().mockReturnValue({
+          sort: jest.fn().mockReturnValue({
+            skip: jest.fn().mockReturnValue({
+              limit: jest.fn().mockReturnValue({
+                lean: jest.fn().mockResolvedValue(mockTransactions)
               })
             })
           })
         })
       };
-      
+
       transactionModel.find.mockReturnValue(mockQuery);
       transactionModel.countDocuments.mockResolvedValue(2);
 
@@ -249,7 +255,7 @@ describe('TransactionService', () => {
       });
     });
 
-    test('should get transactions with custom filters and pagination', async () => {
+    it('should get transactions with custom filters and pagination', async () => {
       // Arrange
       const filters = {
         type: 'expense',
@@ -265,19 +271,17 @@ describe('TransactionService', () => {
       };
 
       const mockQuery = {
-        find: jest.fn().mockReturnValue({
-          populate: jest.fn().mockReturnValue({
-            sort: jest.fn().mockReturnValue({
-              skip: jest.fn().mockReturnValue({
-                limit: jest.fn().mockReturnValue({
-                  lean: jest.fn().mockResolvedValue(mockTransactions)
-                })
+        populate: jest.fn().mockReturnValue({
+          sort: jest.fn().mockReturnValue({
+            skip: jest.fn().mockReturnValue({
+              limit: jest.fn().mockReturnValue({
+                lean: jest.fn().mockResolvedValue(mockTransactions)
               })
             })
           })
         })
       };
-      
+
       transactionModel.find.mockReturnValue(mockQuery);
       transactionModel.countDocuments.mockResolvedValue(15);
 
@@ -307,22 +311,20 @@ describe('TransactionService', () => {
       });
     });
 
-    test('should handle empty results', async () => {
+    it('should handle empty results', async () => {
       // Arrange
       const mockQuery = {
-        find: jest.fn().mockReturnValue({
-          populate: jest.fn().mockReturnValue({
-            sort: jest.fn().mockReturnValue({
-              skip: jest.fn().mockReturnValue({
-                limit: jest.fn().mockReturnValue({
-                  lean: jest.fn().mockResolvedValue([])
-                })
+        populate: jest.fn().mockReturnValue({
+          sort: jest.fn().mockReturnValue({
+            skip: jest.fn().mockReturnValue({
+              limit: jest.fn().mockReturnValue({
+                lean: jest.fn().mockResolvedValue([])
               })
             })
           })
         })
       };
-      
+
       transactionModel.find.mockReturnValue(mockQuery);
       transactionModel.countDocuments.mockResolvedValue(0);
 
@@ -359,7 +361,7 @@ describe('TransactionService', () => {
       accountId: 'account123'
     };
 
-    test('should successfully update transaction', async () => {
+    it('should successfully update transaction', async () => {
       // Arrange
       const mockTransaction = {
         _id: 'transaction123',
@@ -369,7 +371,9 @@ describe('TransactionService', () => {
 
       transactionModel.findOne.mockResolvedValue(mockTransaction);
       transactionModel.findByIdAndUpdate.mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockUpdatedTransaction)
+        populate: jest.fn().mockReturnValue({
+          lean: jest.fn().mockReturnValue(mockUpdatedTransaction)
+        })
       });
 
       // Act
@@ -389,7 +393,7 @@ describe('TransactionService', () => {
       expect(result).toBe(mockUpdatedTransaction);
     });
 
-    test('should throw error when transaction not found', async () => {
+    it('should throw error when transaction not found', async () => {
       // Arrange
       transactionModel.findOne.mockResolvedValue(null);
 
@@ -400,7 +404,7 @@ describe('TransactionService', () => {
   });
 
   describe('deleteTransaction', () => {
-    test('should successfully delete transaction (soft delete)', async () => {
+    it('should successfully delete transaction (soft delete)', async () => {
       // Arrange
       const mockTransaction = {
         _id: 'transaction123',
@@ -426,7 +430,7 @@ describe('TransactionService', () => {
       expect(result).toEqual({ message: 'Transaction deleted successfully' });
     });
 
-    test('should throw error when transaction not found', async () => {
+    it('should throw error when transaction not found', async () => {
       // Arrange
       transactionModel.findOne.mockResolvedValue(null);
 
@@ -435,7 +439,7 @@ describe('TransactionService', () => {
         .rejects.toThrow('Transaction not found');
     });
 
-    test('should handle save error during soft delete', async () => {
+    it('should handle save error during soft delete', async () => {
       // Arrange
       const mockTransaction = {
         _id: 'transaction123',
