@@ -11,7 +11,7 @@ import { unAuthorizedRequest } from "../util/responses/clientErrorResponses.js";
  * @param {Function} next - Express next middleware function
  * @returns {Promise<void|Response>} Calls next() if token valid, returns unauthorized response if invalid
  */
-export async function verifyToken(req, res, next) {
+export function verifyToken(req, res, next) {
   try {
     const secretKey = process.env.JWT_SECRET_KEY;
     //
@@ -20,7 +20,7 @@ export async function verifyToken(req, res, next) {
 
     const token = authorization?.split(" ");
     if (token.length !== 2) return unAuthorizedRequest({ res, error: { message: "Invalid token format" } });
-    jwt.verify(token[1], secretKey, async (err, decoded) => {
+    jwt.verify(token[1], secretKey, (err, decoded) => {
       if (err) {
         console.log({ err });
         return unAuthorizedRequest({ res, error: { message: "Error while parsing token" } });

@@ -1,3 +1,4 @@
+import { jest } from "@jest/globals";
 // Test setup file for Jest configuration
 // This file helps configure Jest for ES modules and provides global test utilities
 
@@ -65,7 +66,6 @@ global.testUtils = {
 // Mock console methods to reduce noise in test output
 global.console = {
   ...console,
-  log: jest.fn(),
   debug: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),

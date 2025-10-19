@@ -1,32 +1,37 @@
-import { jest } from '@jest/globals';
-import { validationResult } from 'express-validator';
-import { validateRequest } from '../../src/middleware/validateRequest.js';
-import { badRequest } from '../../src/util/responses/clientErrorResponses.js';
+import { jest } from "@jest/globals";
 
-// Mock express-validator
-jest.mock('express-validator', () => ({
-  validationResult: jest.fn()
-}));
+jest.unstable_mockModule('express-validator', () => {
+  return {
+    validationResult: jest.fn(),
+    __esModule: true,
+  };
+});
 
-// Mock response utilities
-jest.mock('../../src/util/responses/clientErrorResponses.js', () => ({
-  badRequest: jest.fn()
-}));
+jest.unstable_mockModule('../src/util/responses/clientErrorResponses.js', () => {
+  return {
+    badRequest: jest.fn(),
+    __esModule: true,
+  };
+});
+
+const { validationResult } = await import('express-validator');
+const { validateRequest } = await import('../../src/middleware/validateRequest.js');
+const { badRequest } = await import('../../src/util/responses/clientErrorResponses.js');
 
 describe('validateRequest Middleware', () => {
   let mockReq, mockRes, mockNext;
 
   beforeEach(() => {
-    mockReq = {};
-    mockRes = {};
-    mockNext = jest.fn();
-    
+    mockReq = testUtils.createMockRequest();
+    mockRes = testUtils.createMockResponse();
+    mockNext = testUtils.createMockNext();
+
     // Reset all mocks
     jest.clearAllMocks();
   });
 
   describe('when validation passes', () => {
-    test('should call next() when no validation errors', () => {
+    it('should call next() when no validation errors', () => {
       // Arrange
       validationResult.mockReturnValue({
         isEmpty: () => true,
@@ -44,7 +49,7 @@ describe('validateRequest Middleware', () => {
   });
 
   describe('when validation fails', () => {
-    test('should return bad request when validation errors exist', () => {
+    it('should return bad request when validation errors exist', () => {
       // Arrange
       const mockErrors = [
         {
@@ -99,7 +104,7 @@ describe('validateRequest Middleware', () => {
       expect(mockNext).not.toHaveBeenCalled();
     });
 
-    test('should handle errors with path property', () => {
+    it('should handle errors with path property', () => {
       // Arrange
       const mockErrors = [
         {
@@ -133,7 +138,7 @@ describe('validateRequest Middleware', () => {
       });
     });
 
-    test('should handle errors with param property when path is not available', () => {
+    it('should handle errors with param property when path is not available', () => {
       // Arrange
       const mockErrors = [
         {
@@ -167,7 +172,7 @@ describe('validateRequest Middleware', () => {
       });
     });
 
-    test('should handle empty errors array', () => {
+    it('should handle empty errors array', () => {
       // Arrange
       validationResult.mockReturnValue({
         isEmpty: () => false,
@@ -189,7 +194,7 @@ describe('validateRequest Middleware', () => {
   });
 
   describe('error handling', () => {
-    test('should handle validationResult throwing an error', () => {
+    it('should handle validationResult throwing an error', () => {
       // Arrange
       validationResult.mockImplementation(() => {
         throw new Error('Validation result error');
