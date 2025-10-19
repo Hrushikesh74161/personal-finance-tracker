@@ -1,17 +1,29 @@
 import { jest } from '@jest/globals';
-import mongoose from 'mongoose';
-import { categoryModel } from '../../src/models/categoryModel.js';
-import {
-  createCategory,
-  getCategoryById,
-  getCategories,
-  updateCategory,
-  deleteCategory,
-  getCategoryStats,
-} from '../../src/services/categoryService.js';
 
 // Mock the category model
-jest.mock('../../src/models/categoryModel.js');
+jest.unstable_mockModule('../src/models/categoryModel.js', () => {
+  const mockCategoryModel = jest.fn();
+  mockCategoryModel.findOne = jest.fn();
+  mockCategoryModel.find = jest.fn();
+  mockCategoryModel.findByIdAndUpdate = jest.fn();
+  mockCategoryModel.countDocuments = jest.fn();
+
+  return {
+    categoryModel: mockCategoryModel,
+    __esModule: true,
+  }
+});
+
+const { categoryModel } = await import('../../src/models/categoryModel.js');
+const {
+  createCategory,
+  deleteCategory,
+  getCategories,
+  getCategoryById,
+  getCategoryStats,
+  updateCategory,
+} = await import('../../src/services/categoryService.js');
+
 
 describe('CategoryService', () => {
   beforeEach(() => {
@@ -19,7 +31,7 @@ describe('CategoryService', () => {
   });
 
   describe('createCategory', () => {
-    test('should create a new category successfully', async () => {
+    it('should create a new category successfully', async () => {
       const categoryData = {
         userId: 'user123',
         name: 'Food & Dining',
@@ -36,7 +48,6 @@ describe('CategoryService', () => {
         deletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        populate: jest.fn().mockReturnThis(),
         save: jest.fn().mockResolvedValue({
           _id: 'category123',
           ...categoryData,
@@ -45,6 +56,7 @@ describe('CategoryService', () => {
           deletedAt: null,
           createdAt: new Date(),
           updatedAt: new Date(),
+          populate: jest.fn().mockReturnThis(),
         }),
       };
 
@@ -67,7 +79,7 @@ describe('CategoryService', () => {
       }));
     });
 
-    test('should throw error if category with same name exists', async () => {
+    it('should throw error if category with same name exists', async () => {
       const categoryData = {
         userId: 'user123',
         name: 'Food & Dining',
@@ -87,7 +99,7 @@ describe('CategoryService', () => {
   });
 
   describe('getCategoryById', () => {
-    test('should get category by ID successfully', async () => {
+    it('should get category by ID successfully', async () => {
       const mockCategory = {
         _id: 'category123',
         userId: 'user123',
@@ -118,7 +130,7 @@ describe('CategoryService', () => {
       expect(result).toEqual(mockCategory);
     });
 
-    test('should throw error if category not found', async () => {
+    it('should throw error if category not found', async () => {
       categoryModel.findOne = jest.fn().mockReturnValue({
         populate: jest.fn().mockReturnValue({
           lean: jest.fn().mockResolvedValue(null),
@@ -132,7 +144,7 @@ describe('CategoryService', () => {
   });
 
   describe('getCategories', () => {
-    test('should get categories with pagination', async () => {
+    it('should get categories with pagination', async () => {
       const mockCategories = [
         {
           _id: 'category123',
@@ -171,7 +183,7 @@ describe('CategoryService', () => {
       });
     });
 
-    test('should apply search filter', async () => {
+    it('should apply search filter', async () => {
       const mockQuery = {
         find: jest.fn().mockReturnThis(),
         populate: jest.fn().mockReturnThis(),
@@ -198,7 +210,7 @@ describe('CategoryService', () => {
   });
 
   describe('updateCategory', () => {
-    test('should update category successfully', async () => {
+    it('should update category successfully', async () => {
       const mockCategory = {
         _id: 'category123',
         name: 'Food & Dining',
@@ -212,8 +224,8 @@ describe('CategoryService', () => {
         color: '#FF6B35',
       };
 
-      categoryModel.findOne = jest.fn().mockResolvedValue(mockCategory);
-      categoryModel.findByIdAndUpdate = jest.fn().mockReturnValue({
+      categoryModel.findOne.mockResolvedValueOnce(mockCategory).mockResolvedValueOnce(undefined);
+      categoryModel.findByIdAndUpdate.mockReturnValue({
         populate: jest.fn().mockReturnValue({
           lean: jest.fn().mockResolvedValue(updatedCategory),
         }),
@@ -228,7 +240,7 @@ describe('CategoryService', () => {
       expect(result).toEqual(updatedCategory);
     });
 
-    test('should throw error if category not found', async () => {
+    it('should throw error if category not found', async () => {
       categoryModel.findOne = jest.fn().mockResolvedValue(null);
 
       await expect(
@@ -236,7 +248,7 @@ describe('CategoryService', () => {
       ).rejects.toThrow('Category not found');
     });
 
-    test('should throw error if name conflicts with existing category', async () => {
+    it('should throw error if name conflicts with existing category', async () => {
       const mockCategory = {
         _id: 'category123',
         name: 'Food & Dining',
@@ -258,7 +270,7 @@ describe('CategoryService', () => {
   });
 
   describe('deleteCategory', () => {
-    test('should soft delete category successfully', async () => {
+    it('should soft delete category successfully', async () => {
       const mockCategory = {
         _id: 'category123',
         name: 'Food & Dining',
@@ -277,7 +289,7 @@ describe('CategoryService', () => {
       expect(result).toEqual({ message: 'Category deleted successfully' });
     });
 
-    test('should throw error if category not found', async () => {
+    it('should throw error if category not found', async () => {
       categoryModel.findOne = jest.fn().mockResolvedValue(null);
 
       await expect(deleteCategory('category123', 'user123')).rejects.toThrow(
@@ -287,7 +299,7 @@ describe('CategoryService', () => {
   });
 
   describe('getCategoryStats', () => {
-    test('should get category statistics successfully', async () => {
+    it('should get category statistics successfully', async () => {
       const mockCategories = [
         {
           _id: 'category123',
