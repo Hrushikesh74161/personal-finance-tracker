@@ -1,20 +1,41 @@
 import { jest } from '@jest/globals';
-import mongoose from 'mongoose';
-import { budgetModel } from '../../src/models/budgetModel.js';
-import { categoryModel } from '../../src/models/categoryModel.js';
-import {
+
+// mock budget model
+jest.unstable_mockModule('../src/models/budgetModel.js', () => {
+  const mockBudgetModel = jest.fn();
+  mockBudgetModel.findOne = jest.fn();
+  mockBudgetModel.find = jest.fn();
+  mockBudgetModel.findByIdAndUpdate = jest.fn();
+  mockBudgetModel.countDocuments = jest.fn();
+
+  return {
+    budgetModel: mockBudgetModel,
+    __esModule: true,
+  }
+});
+
+// mock category model
+jest.unstable_mockModule('../src/models/categoryModel.js', () => {
+  const mockCategoryModel = jest.fn();
+  mockCategoryModel.findOne = jest.fn();
+
+  return {
+    categoryModel: mockCategoryModel,
+    __esModule: true,
+  }
+});
+
+const { budgetModel } = await import('../../src/models/budgetModel.js');
+const { categoryModel } = await import('../../src/models/categoryModel.js');
+const {
   createBudget,
+  deleteBudget,
   getBudgetById,
   getBudgets,
-  updateBudget,
-  deleteBudget,
   getBudgetStats,
   getCurrentBudgets,
-} from '../../src/services/budgetService.js';
-
-// Mock the models
-jest.mock('../../src/models/budgetModel.js');
-jest.mock('../../src/models/categoryModel.js');
+  updateBudget,
+} = await import('../../src/services/budgetService.js');
 
 describe('BudgetService', () => {
   beforeEach(() => {
@@ -22,7 +43,7 @@ describe('BudgetService', () => {
   });
 
   describe('createBudget', () => {
-    test('should create a new budget successfully', async () => {
+    it('should create a new budget successfully', async () => {
       const budgetData = {
         userId: 'user123',
         categoryId: 'category123',
@@ -50,7 +71,6 @@ describe('BudgetService', () => {
         deletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        populate: jest.fn().mockReturnThis(),
         save: jest.fn().mockResolvedValue({
           _id: 'budget123',
           ...budgetData,
@@ -59,6 +79,7 @@ describe('BudgetService', () => {
           deletedAt: null,
           createdAt: new Date(),
           updatedAt: new Date(),
+          populate: jest.fn(),
         }),
       };
 
@@ -82,7 +103,7 @@ describe('BudgetService', () => {
       }));
     });
 
-    test('should throw error if category not found', async () => {
+    it('should throw error if category not found', async () => {
       const budgetData = {
         userId: 'user123',
         categoryId: 'category123',
@@ -97,7 +118,7 @@ describe('BudgetService', () => {
       await expect(createBudget(budgetData)).rejects.toThrow('Category not found or inactive');
     });
 
-    test('should throw error if start date is after end date', async () => {
+    it('should throw error if start date is after end date', async () => {
       const budgetData = {
         userId: 'user123',
         categoryId: 'category123',
@@ -120,7 +141,7 @@ describe('BudgetService', () => {
       await expect(createBudget(budgetData)).rejects.toThrow('Start date must be before end date');
     });
 
-    test('should throw error if overlapping budget exists', async () => {
+    it('should throw error if overlapping budget exists', async () => {
       const budgetData = {
         userId: 'user123',
         categoryId: 'category123',
@@ -154,7 +175,7 @@ describe('BudgetService', () => {
   });
 
   describe('getBudgetById', () => {
-    test('should return budget by ID', async () => {
+    it('should return budget by ID', async () => {
       const budgetId = 'budget123';
       const userId = 'user123';
 
@@ -189,7 +210,7 @@ describe('BudgetService', () => {
       });
     });
 
-    test('should throw error if budget not found', async () => {
+    it('should throw error if budget not found', async () => {
       const budgetId = 'budget123';
       const userId = 'user123';
 
@@ -205,7 +226,7 @@ describe('BudgetService', () => {
   });
 
   describe('getBudgets', () => {
-    test('should return paginated budgets', async () => {
+    it('should return paginated budgets', async () => {
       const userId = 'user123';
       const filters = { page: 1, limit: 10 };
 
@@ -240,7 +261,7 @@ describe('BudgetService', () => {
   });
 
   describe('updateBudget', () => {
-    test('should update budget successfully', async () => {
+    it('should update budget successfully', async () => {
       const budgetId = 'budget123';
       const userId = 'user123';
       const updateData = { name: 'Updated Budget', amount: 600 };
@@ -289,7 +310,7 @@ describe('BudgetService', () => {
       });
     });
 
-    test('should throw error if budget not found', async () => {
+    it('should throw error if budget not found', async () => {
       const budgetId = 'budget123';
       const userId = 'user123';
       const updateData = { name: 'Updated Budget' };
@@ -301,7 +322,7 @@ describe('BudgetService', () => {
   });
 
   describe('deleteBudget', () => {
-    test('should soft delete budget successfully', async () => {
+    it('should soft delete budget successfully', async () => {
       const budgetId = 'budget123';
       const userId = 'user123';
 
@@ -328,7 +349,7 @@ describe('BudgetService', () => {
       expect(result).toEqual({ message: 'Budget deleted successfully' });
     });
 
-    test('should throw error if budget not found', async () => {
+    it('should throw error if budget not found', async () => {
       const budgetId = 'budget123';
       const userId = 'user123';
 
@@ -339,7 +360,7 @@ describe('BudgetService', () => {
   });
 
   describe('getBudgetStats', () => {
-    test('should return budget statistics', async () => {
+    it('should return budget statistics', async () => {
       const userId = 'user123';
 
       const mockBudgets = [
@@ -399,7 +420,7 @@ describe('BudgetService', () => {
   });
 
   describe('getCurrentBudgets', () => {
-    test('should return current active budgets', async () => {
+    it('should return current active budgets', async () => {
       const userId = 'user123';
 
       const mockBudgets = [
