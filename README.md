@@ -6,7 +6,6 @@ A full-stack personal finance management application built with React frontend a
 
 ### Prerequisites
 - Node.js (v16 or higher)
-- MongoDB (local or cloud instance)
 - npm or yarn
 
 ### Backend Setup & Start
@@ -38,20 +37,6 @@ npm run dev
 ```
 
 The frontend will start on `http://localhost:5173` (Vite default port).
-
-## 🔧 Environment Configuration
-
-### Backend Environment Variables
-Create a `.env` file in the `backend` directory with the following variables:
-
-```env
-MONGODB_URL=mongodb://localhost:27017/personal-finance-tracker
-SERVER_PORT=3000
-JWT_SECRET=your-jwt-secret-key
-```
-
-### Frontend Configuration
-The frontend is configured to connect to the backend API. Update the API base URL in `frontend/src/api/apiClient.js` if needed.
 
 ## 📁 Project Structure
 
@@ -132,14 +117,12 @@ Detailed API documentation is available in the `backend/docs/` directory:
 - Password hashing with bcrypt
 - Input validation and sanitization
 - CORS protection
-- Environment variable configuration
 
 ## 🔄 Development Workflow
 
-1. Start MongoDB service
-2. Start backend server (`npm run dev` in backend directory)
-3. Start frontend server (`npm run dev` in frontend directory)
-4. Access the application at `http://localhost:5173`
+1. Start backend server (`npm run dev` in backend directory)
+2. Start frontend server (`npm run dev` in frontend directory)
+3. Access the application at `http://localhost:5173`
 
 ## 📝 Notes
 
